@@ -1,5 +1,5 @@
 import logging
-import pyodbc
+from sqlalchemy import create_engine, Table, Column, DateTime, String, MetaData, text
 from datetime import datetime
 from typing import Optional, Dict, Any
 
@@ -9,48 +9,55 @@ class DatabaseLogHandler(logging.Handler):
         super().__init__()
         self.connection_string = connection_string
         self.table_name = table_name
+        self.engine = create_engine(connection_string)
         self._ensure_table_exists()
 
     def _ensure_table_exists(self) -> None:
         try:
-            with pyodbc.connect(self.connection_string) as conn:
-                cursor = conn.cursor()
-                cursor.execute(f"""
-                IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = '{self.table_name}')
-                BEGIN
-                    CREATE TABLE {self.table_name} (
-                        timestamp DATETIME NOT NULL,
-                        level VARCHAR(10) NOT NULL,
-                        message VARCHAR(1000) NOT NULL
-                    )
-                END
-                """)
-                conn.commit()
+            metadata = MetaData()
+            logs_table = Table(
+                self.table_name,
+                metadata,
+                Column('timestamp', DateTime, nullable=False),
+                Column('level', String(10), nullable=False),
+                Column('message', String(4000), nullable=False)
+            )
+
+            # Create the table if it doesn't exist
+            metadata.create_all(self.engine)
+
         except Exception as e:
             print(f"Failed to create log table: {e}")
 
     def emit(self, record: logging.LogRecord) -> None:
         try:
-            with pyodbc.connect(self.connection_string) as conn:
-                cursor = conn.cursor()
+            with self.engine.connect() as conn:
                 timestamp = datetime.fromtimestamp(record.created)
                 level = record.levelname
-                # Store only the actual message without additional formatting
+
+                # Get the raw message without additional formatting
                 message = record.getMessage()
 
-                sql = f"INSERT INTO {self.table_name} (timestamp, level, message) VALUES (?, ?, ?)"
-                cursor.execute(sql, (timestamp, level, message))
+                # Truncate message if it's too long for the database column
+                if len(message) > 4000:
+                    message = message[:3997] + "..."
+
+                # Use parameterized query to avoid SQL injection
+                insert_sql = text(
+                    f"INSERT INTO {self.table_name} (timestamp, level, message) VALUES (:timestamp, :level, :message)")
+
+                conn.execute(insert_sql, {"timestamp": timestamp, "level": level, "message": message})
                 conn.commit()
+
         except Exception as e:
             print(f"Failed to write log to database: {e}")
             print(f"Log: [{record.levelname}] {record.getMessage()}")
 
     def clear_old_logs(self) -> None:
         try:
-            with pyodbc.connect(self.connection_string) as conn:
-                cursor = conn.cursor()
+            with self.engine.connect() as conn:
                 # Keep last 1000 logs to avoid table growing too large
-                cursor.execute(f"""
+                clear_sql = text(f"""
                     WITH OldLogs AS (
                         SELECT timestamp,
                                ROW_NUMBER() OVER (ORDER BY timestamp DESC) AS RowNum
@@ -61,7 +68,10 @@ class DatabaseLogHandler(logging.Handler):
                         SELECT timestamp FROM OldLogs WHERE RowNum > 1000
                     )
                 """)
+
+                conn.execute(clear_sql)
                 conn.commit()
+
         except Exception as e:
             print(f"Failed to clear old logs: {e}")
 
@@ -108,8 +118,8 @@ class Logger:
                 print(f"Failed to initialize database logging: {e}")
 
     def _build_connection_string(self, config: Dict[str, Any]) -> str:
-        return f"DRIVER={{ODBC Driver 17 for SQL Server}};SERVER={config['Host']},{config['Port']};" \
-               f"DATABASE={config['Database']};UID={config['User']};PWD={config['Password']}"
+        return (f"mssql+pyodbc://{config['User']}:{config['Password']}@{config['Host']},{config['Port']}/"
+                f"{config['Database']}?driver=ODBC+Driver+17+for+SQL+Server")
 
     def debug(self, msg: str, *args, **kwargs) -> None:
         self._logger.debug(msg, *args, **kwargs)

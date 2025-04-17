@@ -3,6 +3,7 @@ from questionary import Choice
 from UI.Constants import AppMode
 from Utilities.ConfigurationUtils import Config
 from Configuration.Constants import TimeFrames, CurrencyPairs
+from typing import Dict, Optional, Any
 
 
 class TradingBotCLI:
@@ -10,6 +11,8 @@ class TradingBotCLI:
         self.config = config or Config()
         self.main_choices = [
             Choice("Fetch Data", AppMode.FETCH_DATA.value),
+            Choice("Process Data", AppMode.PROCESS_DATA.value),
+            Choice("Validate Data", AppMode.VALIDATE_DATA.value),
             Choice("Exit", "exit")
         ]
 
@@ -52,7 +55,7 @@ class TradingBotCLI:
             choices=choices
         ).ask() or 'back'
 
-    def change_config_menu(self):
+    def change_config_menu(self) -> Optional[Dict[str, Any]]:
         fetch_config = self.config.get('FetchingSettings', {})
 
         # 1. Select currency pair
@@ -93,4 +96,137 @@ class TradingBotCLI:
             'pair': selected_pair,
             'days': int(days),
             'timeframe': timeframe
+        }
+
+    def validate_data_menu(self) -> str:
+        """Menu for data validation options."""
+        print("Data Validation Options:")
+        print("This will validate that all technical indicators are calculated correctly.")
+        print()
+
+        choices = [
+            Choice("Validate all datasets", "validate_all"),
+            Choice("Validate specific dataset", "validate_specific"),
+            Choice("Generate indicator visualizations", "generate_visualizations"),
+            Choice("Go back", "back")
+        ]
+
+        return questionary.select(
+            'Select a validation option:',
+            choices=choices
+        ).ask() or 'back'
+
+    def select_dataset_menu(self) -> Optional[Dict[str, str]]:
+        """Menu for selecting specific dataset to process."""
+        # 1. Select currency pair
+        pairs = [CurrencyPairs.XAUUSD, CurrencyPairs.USDJPY, CurrencyPairs.EURUSD, CurrencyPairs.GBPUSD]
+        pair_choices = [Choice(CurrencyPairs.display_name(p), p) for p in pairs]
+
+        selected_pair = questionary.select(
+            'Select currency pair:',
+            choices=pair_choices
+        ).ask()
+
+        if not selected_pair:
+            return None
+
+        # 2. Select timeframe
+        timeframes = [tf.value for tf in TimeFrames]
+        timeframe = questionary.select(
+            'Select timeframe:',
+            choices=timeframes
+        ).ask()
+
+        if not timeframe:
+            return None
+
+        # 3. Select dataset type
+        dataset_types = ["training", "validation", "testing"]
+        dataset_type = questionary.select(
+            'Select dataset type:',
+            choices=dataset_types
+        ).ask()
+
+        if not dataset_type:
+            return None
+
+        return {
+            'pair': selected_pair,
+            'timeframe': timeframe,
+            'dataset_type': dataset_type
+        }
+
+    def process_data_menu(self) -> str:
+        """Menu for data processing options."""
+        print("Data Processing Options:")
+        print("This will add technical indicators and prepare data for machine learning.")
+        print()
+
+        choices = [
+            Choice("Process all datasets (training, validation, testing)", "process_all"),
+            Choice("Process specific dataset", "process_specific"),
+            Choice("Go back", "back")
+        ]
+
+        return questionary.select(
+            'Select a processing option:',
+            choices=choices
+        ).ask() or 'back'
+
+    def validate_data_menu(self) -> str:
+        """Menu for data validation options."""
+        print("Data Validation Options:")
+        print("This will validate that all technical indicators are calculated correctly.")
+        print()
+
+        choices = [
+            Choice("Validate all datasets", "validate_all"),
+            Choice("Validate specific dataset", "validate_specific"),
+            Choice("Generate indicator visualizations", "generate_visualizations"),
+            Choice("Go back", "back")
+        ]
+
+        return questionary.select(
+            'Select a validation option:',
+            choices=choices
+        ).ask() or 'back'
+
+    def select_dataset_menu(self) -> Optional[Dict[str, str]]:
+        """Menu for selecting specific dataset to process."""
+        # 1. Select currency pair
+        pairs = [CurrencyPairs.XAUUSD, CurrencyPairs.USDJPY, CurrencyPairs.EURUSD, CurrencyPairs.GBPUSD]
+        pair_choices = [Choice(CurrencyPairs.display_name(p), p) for p in pairs]
+
+        selected_pair = questionary.select(
+            'Select currency pair:',
+            choices=pair_choices
+        ).ask()
+
+        if not selected_pair:
+            return None
+
+        # 2. Select timeframe
+        timeframes = [tf.value for tf in TimeFrames]
+        timeframe = questionary.select(
+            'Select timeframe:',
+            choices=timeframes
+        ).ask()
+
+        if not timeframe:
+            return None
+
+        # 3. Select dataset type
+        dataset_types = ["training", "validation", "testing"]
+        dataset_type = questionary.select(
+            'Select dataset type:',
+            choices=dataset_types
+        ).ask()
+
+        if not dataset_type:
+            return None
+
+        return {
+            'pair': selected_pair,
+            'timeframe': timeframe,
+            'dataset_type': dataset_type
         }

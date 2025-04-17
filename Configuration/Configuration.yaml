@@ -11,16 +11,6 @@ FetchingSettings:
     Testing: 15
   DefaultTimeperiod: 2001
   DefaultTimeframe: "H1"
-  AvailablePairs:
-    - "XAUUSD"
-    - "USDJPY"
-    - "EURUSD"
-    - "GBPUSD"
-  AvailableTimeframes:
-    - "M15"
-    - "H1"
-    - "H4"
-    - "D1"
 Database:
   Host: "localhost"
   Port: 1433

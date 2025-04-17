@@ -23,7 +23,6 @@ def main(
     mt5_timeout = config.get_nested('MetaTrader5', 'Timeout')
 
     # Log database connection info
-    fetch_settings = config.get('FetchingSettings')
     db_host = config.get_nested('Database', 'Host')
     db_port = config.get_nested('Database', 'Port')
     db_user = config.get_nested('Database', 'User')
@@ -39,7 +38,7 @@ def main(
     if action == "exit":
         logger.info('Application exiting')
     elif action == AppMode.FETCH_DATA.value:
-        handle_fetch_data(cli, logger, config, fetcher_factory)
+        handle_fetch_data(cli, logger, fetcher_factory)
     else:
         logger.info(f'Selected action: {action}')
         # Handle other actions
@@ -47,7 +46,7 @@ def main(
     logger.info('Application finished')
 
 
-def handle_fetch_data(cli: TradingBotCLI, logger: Logger, config: Config, fetcher_factory: FetcherFactory) -> None:
+def handle_fetch_data(cli: TradingBotCLI, logger: Logger, fetcher_factory: FetcherFactory) -> None:
     """Handle fetch data flow"""
     while True:
         fetch_action = cli.fetch_data_menu()
@@ -58,13 +57,17 @@ def handle_fetch_data(cli: TradingBotCLI, logger: Logger, config: Config, fetche
 
         elif fetch_action == "fetch_current":
             logger.info("Fetching data with current configuration")
+            print("Starting data fetch with current configuration...")
+
             fetcher = fetcher_factory.create_mt5_fetcher()
             success = fetcher.fetch_data()
 
             if success:
                 logger.info("Data fetching completed successfully")
+                print("✓ Data fetching completed successfully")
             else:
                 logger.error("Data fetching failed")
+                print("✗ Data fetching failed")
 
         elif fetch_action == "change_config":
             logger.info("Changing fetching configuration")
@@ -72,6 +75,8 @@ def handle_fetch_data(cli: TradingBotCLI, logger: Logger, config: Config, fetche
 
             if new_config:
                 logger.info(f"New configuration: {new_config}")
+                print(f"Starting data fetch with new configuration...")
+
                 fetcher = fetcher_factory.create_mt5_fetcher()
                 success = fetcher.fetch_data(
                     pair=new_config['pair'],
@@ -81,10 +86,13 @@ def handle_fetch_data(cli: TradingBotCLI, logger: Logger, config: Config, fetche
 
                 if success:
                     logger.info("Data fetching with new config completed successfully")
+                    print("✓ Data fetching completed successfully")
                 else:
                     logger.error("Data fetching with new config failed")
+                    print("✗ Data fetching failed")
             else:
                 logger.info("Configuration change cancelled")
+                print("Configuration change cancelled")
 
 
 if __name__ == '__main__':

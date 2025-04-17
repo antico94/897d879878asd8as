@@ -2,6 +2,7 @@ import questionary
 from questionary import Choice, Separator
 from UI.Constants import AppMode
 from Utilities.ConfigurationUtils import Config
+from Configuration.Constants import TimeFrames, CurrencyPairs
 
 
 class TradingBotCLI:
@@ -20,11 +21,12 @@ class TradingBotCLI:
 
     def display_fetch_config(self):
         fetch_config = self.config.get('FetchingSettings')
+        pair_code = fetch_config.get('DefaultPair', 'XAUUSD')
 
         # Create a formatted display of current configuration
         config_display = [
             "Current Fetching Configuration:",
-            f"• Currency Pair: {fetch_config.get('DefaultPair', 'XAUUSD')}",
+            f"• Currency Pair: {CurrencyPairs.display_name(pair_code)}",
             f"• Time Period: {fetch_config.get('DefaultTimeperiod', 2001)} days",
             f"• Timeframe: {fetch_config.get('DefaultTimeframe', 'H1')}",
             f"• Splitting Ratio: {fetch_config.get('SplittingRatio', {}).get('Training', 70)}% training, "
@@ -54,14 +56,8 @@ class TradingBotCLI:
         fetch_config = self.config.get('FetchingSettings', {})
 
         # 1. Select currency pair
-        pairs = fetch_config.get('AvailablePairs', ["XAUUSD", "USDJPY", "EURUSD", "GBPUSD"])
-        pair_display_map = {
-            "XAUUSD": "XAU - USD",
-            "USDJPY": "USD - JPY",
-            "EURUSD": "EUR - USD",
-            "GBPUSD": "GBP - USD"
-        }
-        pair_choices = [Choice(pair_display_map.get(p, p), p) for p in pairs]
+        pairs = [CurrencyPairs.XAUUSD, CurrencyPairs.USDJPY, CurrencyPairs.EURUSD, CurrencyPairs.GBPUSD]
+        pair_choices = [Choice(CurrencyPairs.display_name(p), p) for p in pairs]
 
         selected_pair = questionary.select(
             'Select currency pair:',
@@ -83,7 +79,7 @@ class TradingBotCLI:
             return None
 
         # 3. Select timeframe
-        timeframes = fetch_config.get('AvailableTimeframes', ["M15", "H1", "H4", "D1"])
+        timeframes = [tf.value for tf in TimeFrames]
         timeframe = questionary.select(
             'Select timeframe:',
             choices=timeframes

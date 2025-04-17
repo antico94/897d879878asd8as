@@ -2,12 +2,11 @@ import MetaTrader5 as mt5
 import pandas as pd
 import pyodbc
 from datetime import datetime, timedelta
-import time
-from typing import Dict, Any, Tuple, List
-import logging
+from typing import Dict
 
 from Utilities.ConfigurationUtils import Config
 from Utilities.LoggingUtils import Logger
+from Configuration.Constants import TimeFrames, CurrencyPairs
 
 
 class MT5DataFetcher:
@@ -54,20 +53,23 @@ class MT5DataFetcher:
 
     def fetch_data(self, pair: str = None, days: int = None, timeframe: str = None) -> bool:
         # Use provided parameters or defaults from config
-        pair = pair or self.fetch_config.get('DefaultPair', 'XAUUSD')
+        pair = pair or self.fetch_config.get('DefaultPair', CurrencyPairs.XAUUSD)
         days = days or self.fetch_config.get('DefaultTimeperiod', 2001)
-        timeframe = timeframe or self.fetch_config.get('DefaultTimeframe', 'H1')
+        timeframe = timeframe or self.fetch_config.get('DefaultTimeframe', TimeFrames.H1.value)
 
         self.logger.info(f"Fetching data for {pair}, {days} days, timeframe {timeframe}")
+        print(f"Fetching {CurrencyPairs.display_name(pair)} data for {days} days with {timeframe} timeframe...")
 
         # Convert timeframe string to MT5 timeframe
         mt5_timeframe = self._get_mt5_timeframe(timeframe)
         if not mt5_timeframe:
             self.logger.error(f"Invalid timeframe: {timeframe}")
+            print(f"Error: Invalid timeframe {timeframe}")
             return False
 
         try:
             # Connect to MT5
+            print("Connecting to MT5...")
             if not self.connect_to_mt5():
                 return False
 
@@ -77,13 +79,16 @@ class MT5DataFetcher:
 
             # Fetch rates
             self.logger.info(f"Fetching from {from_date} to {to_date}")
+            print(f"Downloading market data from {from_date.strftime('%Y-%m-%d')} to {to_date.strftime('%Y-%m-%d')}...")
             rates = mt5.copy_rates_range(pair, mt5_timeframe, from_date, to_date)
 
             if rates is None or len(rates) == 0:
                 self.logger.error(f"No data received for {pair} with timeframe {timeframe}")
+                print(f"Error: No data received from MT5")
                 return False
 
             # Convert to DataFrame
+            print(f"Processing {len(rates)} data points...")
             df = pd.DataFrame(rates)
             df['time'] = pd.to_datetime(df['time'], unit='s')
 
@@ -91,9 +96,11 @@ class MT5DataFetcher:
             df = df.sort_values('time')
 
             # Split data according to ratio
+            print("Splitting data into training, validation, and testing sets...")
             splits = self._split_data(df)
 
             # Store in database
+            print("Storing data in database...")
             if self._store_data_in_db(pair, timeframe, splits):
                 self.logger.info(f"Successfully fetched and stored data for {pair} {timeframe}")
                 return True
@@ -103,16 +110,18 @@ class MT5DataFetcher:
 
         except Exception as e:
             self.logger.error(f"Error fetching data: {e}")
+            print(f"Error: {str(e)}")
             return False
         finally:
+            print("Disconnecting from MT5...")
             self.disconnect_from_mt5()
 
     def _get_mt5_timeframe(self, timeframe: str) -> int:
         timeframe_map = {
-            'M15': mt5.TIMEFRAME_M15,
-            'H1': mt5.TIMEFRAME_H1,
-            'H4': mt5.TIMEFRAME_H4,
-            'D1': mt5.TIMEFRAME_D1
+            TimeFrames.M15.value: mt5.TIMEFRAME_M15,
+            TimeFrames.H1.value: mt5.TIMEFRAME_H1,
+            TimeFrames.H4.value: mt5.TIMEFRAME_H4,
+            TimeFrames.D1.value: mt5.TIMEFRAME_D1
         }
         return timeframe_map.get(timeframe.upper())
 
@@ -149,28 +158,36 @@ class MT5DataFetcher:
     def _store_data_in_db(self, pair: str, timeframe: str, data_splits: Dict[str, pd.DataFrame]) -> bool:
         try:
             conn_str = self._build_connection_string()
+            print(f"Connecting to database...")
             with pyodbc.connect(conn_str) as conn:
                 cursor = conn.cursor()
 
                 # Clean up existing tables first
+                print(f"Removing existing data tables if present...")
                 self._clean_existing_tables(cursor, pair, timeframe)
 
                 # Create and populate tables for each split
+                total_rows = 0
                 for split_name, df in data_splits.items():
                     table_name = f"{pair}_{timeframe.lower()}_{split_name}"
 
                     # Create table
+                    print(f"Creating table {table_name}...")
                     self._create_table(cursor, table_name)
 
                     # Insert data
+                    print(f"Inserting {len(df)} rows into {table_name}...")
                     row_count = self._insert_data(cursor, table_name, df)
                     self.logger.info(f"Inserted {row_count} rows into {table_name}")
+                    total_rows += row_count
 
                 conn.commit()
+                print(f"Database operation complete. {total_rows} total rows inserted.")
                 return True
 
         except Exception as e:
             self.logger.error(f"Database error: {e}")
+            print(f"Database error: {str(e)}")
             return False
 
     def _clean_existing_tables(self, cursor, pair: str, timeframe: str) -> None:

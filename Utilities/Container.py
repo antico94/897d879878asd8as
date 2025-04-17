@@ -10,12 +10,13 @@ class Container(containers.DeclarativeContainer):
 
     config = providers.Singleton(Config, file_path='Configuration/Configuration.yaml')
 
-    # Unified logger with both console and database logging
+    # Logger with warnings and errors only for console, full logging to database
     logger = providers.Singleton(
         Logger,
         name='MT5App',
         level=logging.INFO,
         use_console=True,
+        console_level=logging.WARNING,  # Only warnings and errors to console
         db_config=providers.Callable(
             lambda c: c['Database'],
             c=config

@@ -72,6 +72,7 @@ class Logger:
             name: str = 'app',
             level: int = logging.INFO,
             use_console: bool = True,
+            console_level: int = None,
             db_config: Optional[Dict[str, Any]] = None
     ) -> None:
         self._logger = logging.getLogger(name)
@@ -81,6 +82,9 @@ class Logger:
         # Configure console logging if requested
         if use_console:
             console_handler = logging.StreamHandler()
+            # If console_level is provided, use it; otherwise use the global level
+            handler_level = console_level if console_level is not None else level
+            console_handler.setLevel(handler_level)
             formatter = logging.Formatter('[%(asctime)s] %(levelname)s: %(message)s')
             console_handler.setFormatter(formatter)
             self._logger.addHandler(console_handler)
@@ -94,6 +98,8 @@ class Logger:
                 # Use a simple formatter that doesn't duplicate information
                 db_formatter = logging.Formatter('%(message)s')
                 self.db_handler.setFormatter(db_formatter)
+                # Database handler always uses the global log level
+                self.db_handler.setLevel(level)
                 self._logger.addHandler(self.db_handler)
 
                 # Clear old logs

@@ -1,5 +1,5 @@
 import questionary
-from questionary import Choice, Separator
+from questionary import Choice
 from UI.Constants import AppMode
 from Utilities.ConfigurationUtils import Config
 from Configuration.Constants import TimeFrames, CurrencyPairs

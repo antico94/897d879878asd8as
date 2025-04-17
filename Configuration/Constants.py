@@ -2,10 +2,10 @@ from enum import Enum
 
 
 class TimeFrames(Enum):
-    M15 = "M15"  # 15 minutes
-    H1 = "H1"  # 1 hour
-    H4 = "H4"  # 4 hours
-    D1 = "D1"  # 1 day
+    M15 = "M15"
+    H1 = "H1"
+    H4 = "H4"
+    D1 = "D1"
 
 
 class CurrencyPairs:

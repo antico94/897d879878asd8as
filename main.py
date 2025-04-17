@@ -1,4 +1,3 @@
-# file: main.py
 from dependency_injector.wiring import inject, Provide
 from Utilities.Container import Container
 from Utilities.ConfigurationUtils import Config
@@ -41,7 +40,6 @@ def main(
         handle_fetch_data(cli, logger, fetcher_factory)
     else:
         logger.info(f'Selected action: {action}')
-        # Handle other actions
 
     logger.info('Application finished')
 

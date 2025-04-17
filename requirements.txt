@@ -1,0 +1,4 @@
+dependency-injector>=4.41.0
+pyodbc>=4.0.34
+pyyaml>=6.0.0
+questionary>=1.10.0

@@ -1,3 +1,9 @@
 .venv
 .idea
 .idea/*
+# Python virtual env
+.venv/
+
+# JetBrains IDE settings
+.idea/
+*.iml

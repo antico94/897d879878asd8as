@@ -1,0 +1,13 @@
+MetaTrader5:
+  Login: 145688
+  Password: "X9vyB7%90i"
+  Server: FusionMarkets-Demo
+  Timeout: 60000
+FetchingSettings:
+  None: 1
+Database:
+  Host: "localhost"
+  Port: 1433
+  User: "app_user"
+  Password: "password01!"
+  Database: "TestDB"

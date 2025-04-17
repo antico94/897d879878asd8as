@@ -1,6 +1,7 @@
 from dependency_injector import containers, providers
 from Utilities.ConfigurationUtils import Config
 from Utilities.LoggingUtils import Logger
+from Fetching.FetcherFactory import FetcherFactory
 import logging
 
 
@@ -19,4 +20,11 @@ class Container(containers.DeclarativeContainer):
             lambda c: c['Database'],
             c=config
         )
+    )
+
+    # Fetcher factory
+    fetcher_factory = providers.Singleton(
+        FetcherFactory,
+        config=config,
+        logger=logger
     )

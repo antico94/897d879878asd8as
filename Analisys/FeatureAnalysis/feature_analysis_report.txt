@@ -1,0 +1,94 @@
+FEATURE ANALYSIS REPORT
+======================
+
+TOP 20 FEATURES BY IMPORTANCE:
+-----------------------------
+tick_volume: 0.0359
+candle_wick_lower: 0.0345
+candle_wick_upper: 0.0343
+atr: 0.0324
+candle_range: 0.0303
+macd_histogram: 0.0297
+close_pct_change_3: 0.0290
+rsi: 0.0289
+macd_signal: 0.0277
+low_pct_change_3: 0.0265
+high_pct_change_3: 0.0261
+stoch_k: 0.0253
+high_rolling_std_5: 0.0253
+close_pct_change_5: 0.0252
+open_pct_change_5: 0.0251
+candle_body: 0.0250
+open_pct_change_3: 0.0249
+stoch_d: 0.0248
+low_pct_change_5: 0.0242
+macd_line: 0.0242
+
+
+SELECTED FEATURES AFTER REDUNDANCY REMOVAL:
+-----------------------------------------
+stoch_k
+resistance2
+macd_histogram
+close_pct_change_3
+close_pct_change_5
+high_pct_change_3
+close_pct_change
+
+
+HIGHLY CORRELATED FEATURE GROUPS:
+--------------------------------
+open correlated with: high, low, close, sma_5, sma_8, sma_13, sma_21, sma_50, sma_200, ema_5, ema_8, ema_13, ema_21, ema_50, ema_200, bb_middle, bb_upper, bb_lower, pivot, support1, support2, resistance1, resistance2, close_lag_1, close_lag_3, close_lag_5, close_rolling_mean_5, high_lag_1, high_lag_3, high_lag_5, high_rolling_mean_5, low_lag_1, low_lag_3, low_lag_5, low_rolling_mean_5, open_lag_1, open_lag_3, open_lag_5, open_rolling_mean_5
+high correlated with: low, close, sma_5, sma_8, sma_13, sma_21, sma_50, sma_200, ema_5, ema_8, ema_13, ema_21, ema_50, ema_200, bb_middle, bb_upper, bb_lower, pivot, support1, support2, resistance1, resistance2, close_lag_1, close_lag_3, close_lag_5, close_rolling_mean_5, high_lag_1, high_lag_3, high_lag_5, high_rolling_mean_5, low_lag_1, low_lag_3, low_lag_5, low_rolling_mean_5, open_lag_1, open_lag_3, open_lag_5, open_rolling_mean_5
+low correlated with: close, sma_5, sma_8, sma_13, sma_21, sma_50, sma_200, ema_5, ema_8, ema_13, ema_21, ema_50, ema_200, bb_middle, bb_upper, bb_lower, pivot, support1, support2, resistance1, resistance2, close_lag_1, close_lag_3, close_lag_5, close_rolling_mean_5, high_lag_1, high_lag_3, high_lag_5, high_rolling_mean_5, low_lag_1, low_lag_3, low_lag_5, low_rolling_mean_5, open_lag_1, open_lag_3, open_lag_5, open_rolling_mean_5
+close correlated with: sma_5, sma_8, sma_13, sma_21, sma_50, sma_200, ema_5, ema_8, ema_13, ema_21, ema_50, ema_200, bb_middle, bb_upper, bb_lower, pivot, support1, support2, resistance1, resistance2, close_lag_1, close_lag_3, close_lag_5, close_rolling_mean_5, high_lag_1, high_lag_3, high_lag_5, high_rolling_mean_5, low_lag_1, low_lag_3, low_lag_5, low_rolling_mean_5, open_lag_1, open_lag_3, open_lag_5, open_rolling_mean_5
+sma_5 correlated with: sma_8, sma_13, sma_21, sma_50, sma_200, ema_5, ema_8, ema_13, ema_21, ema_50, ema_200, bb_middle, bb_upper, bb_lower, pivot, support1, support2, resistance1, resistance2, close_lag_1, close_lag_3, close_lag_5, close_rolling_mean_5, high_lag_1, high_lag_3, high_lag_5, high_rolling_mean_5, low_lag_1, low_lag_3, low_lag_5, low_rolling_mean_5, open_lag_1, open_lag_3, open_lag_5, open_rolling_mean_5
+sma_8 correlated with: sma_13, sma_21, sma_50, sma_200, ema_5, ema_8, ema_13, ema_21, ema_50, ema_200, bb_middle, bb_upper, bb_lower, pivot, support1, support2, resistance1, resistance2, close_lag_1, close_lag_3, close_lag_5, close_rolling_mean_5, high_lag_1, high_lag_3, high_lag_5, high_rolling_mean_5, low_lag_1, low_lag_3, low_lag_5, low_rolling_mean_5, open_lag_1, open_lag_3, open_lag_5, open_rolling_mean_5
+sma_13 correlated with: sma_21, sma_50, sma_200, ema_5, ema_8, ema_13, ema_21, ema_50, ema_200, bb_middle, bb_upper, bb_lower, pivot, support1, support2, resistance1, resistance2, close_lag_1, close_lag_3, close_lag_5, close_rolling_mean_5, high_lag_1, high_lag_3, high_lag_5, high_rolling_mean_5, low_lag_1, low_lag_3, low_lag_5, low_rolling_mean_5, open_lag_1, open_lag_3, open_lag_5, open_rolling_mean_5
+sma_21 correlated with: sma_50, sma_200, ema_5, ema_8, ema_13, ema_21, ema_50, ema_200, bb_middle, bb_upper, bb_lower, pivot, support1, support2, resistance1, resistance2, close_lag_1, close_lag_3, close_lag_5, close_rolling_mean_5, high_lag_1, high_lag_3, high_lag_5, high_rolling_mean_5, low_lag_1, low_lag_3, low_lag_5, low_rolling_mean_5, open_lag_1, open_lag_3, open_lag_5, open_rolling_mean_5
+sma_50 correlated with: sma_200, ema_5, ema_8, ema_13, ema_21, ema_50, ema_200, bb_middle, bb_upper, bb_lower, pivot, support1, support2, resistance1, resistance2, close_lag_1, close_lag_3, close_lag_5, close_rolling_mean_5, high_lag_1, high_lag_3, high_lag_5, high_rolling_mean_5, low_lag_1, low_lag_3, low_lag_5, low_rolling_mean_5, open_lag_1, open_lag_3, open_lag_5, open_rolling_mean_5
+sma_200 correlated with: ema_5, ema_8, ema_13, ema_21, ema_50, ema_200, bb_middle, bb_upper, bb_lower, pivot, support1, support2, resistance1, resistance2, close_lag_1, close_lag_3, close_lag_5, close_rolling_mean_5, high_lag_1, high_lag_3, high_lag_5, high_rolling_mean_5, low_lag_1, low_lag_3, low_lag_5, low_rolling_mean_5, open_lag_1, open_lag_3, open_lag_5, open_rolling_mean_5
+ema_5 correlated with: ema_8, ema_13, ema_21, ema_50, ema_200, bb_middle, bb_upper, bb_lower, pivot, support1, support2, resistance1, resistance2, close_lag_1, close_lag_3, close_lag_5, close_rolling_mean_5, high_lag_1, high_lag_3, high_lag_5, high_rolling_mean_5, low_lag_1, low_lag_3, low_lag_5, low_rolling_mean_5, open_lag_1, open_lag_3, open_lag_5, open_rolling_mean_5
+ema_8 correlated with: ema_13, ema_21, ema_50, ema_200, bb_middle, bb_upper, bb_lower, pivot, support1, support2, resistance1, resistance2, close_lag_1, close_lag_3, close_lag_5, close_rolling_mean_5, high_lag_1, high_lag_3, high_lag_5, high_rolling_mean_5, low_lag_1, low_lag_3, low_lag_5, low_rolling_mean_5, open_lag_1, open_lag_3, open_lag_5, open_rolling_mean_5
+ema_13 correlated with: ema_21, ema_50, ema_200, bb_middle, bb_upper, bb_lower, pivot, support1, support2, resistance1, resistance2, close_lag_1, close_lag_3, close_lag_5, close_rolling_mean_5, high_lag_1, high_lag_3, high_lag_5, high_rolling_mean_5, low_lag_1, low_lag_3, low_lag_5, low_rolling_mean_5, open_lag_1, open_lag_3, open_lag_5, open_rolling_mean_5
+ema_21 correlated with: ema_50, ema_200, bb_middle, bb_upper, bb_lower, pivot, support1, support2, resistance1, resistance2, close_lag_1, close_lag_3, close_lag_5, close_rolling_mean_5, high_lag_1, high_lag_3, high_lag_5, high_rolling_mean_5, low_lag_1, low_lag_3, low_lag_5, low_rolling_mean_5, open_lag_1, open_lag_3, open_lag_5, open_rolling_mean_5
+ema_50 correlated with: ema_200, bb_middle, bb_upper, bb_lower, pivot, support1, support2, resistance1, resistance2, close_lag_1, close_lag_3, close_lag_5, close_rolling_mean_5, high_lag_1, high_lag_3, high_lag_5, high_rolling_mean_5, low_lag_1, low_lag_3, low_lag_5, low_rolling_mean_5, open_lag_1, open_lag_3, open_lag_5, open_rolling_mean_5
+ema_200 correlated with: bb_middle, bb_upper, bb_lower, pivot, support1, support2, resistance1, resistance2, close_lag_1, close_lag_3, close_lag_5, close_rolling_mean_5, high_lag_1, high_lag_3, high_lag_5, high_rolling_mean_5, low_lag_1, low_lag_3, low_lag_5, low_rolling_mean_5, open_lag_1, open_lag_3, open_lag_5, open_rolling_mean_5
+macd_line correlated with: macd_signal
+bb_middle correlated with: bb_upper, bb_lower, pivot, support1, support2, resistance1, resistance2, close_lag_1, close_lag_3, close_lag_5, close_rolling_mean_5, high_lag_1, high_lag_3, high_lag_5, high_rolling_mean_5, low_lag_1, low_lag_3, low_lag_5, low_rolling_mean_5, open_lag_1, open_lag_3, open_lag_5, open_rolling_mean_5
+bb_std correlated with: bb_width
+bb_upper correlated with: bb_lower, pivot, support1, support2, resistance1, resistance2, close_lag_1, close_lag_3, close_lag_5, close_rolling_mean_5, high_lag_1, high_lag_3, high_lag_5, high_rolling_mean_5, low_lag_1, low_lag_3, low_lag_5, low_rolling_mean_5, open_lag_1, open_lag_3, open_lag_5, open_rolling_mean_5
+bb_lower correlated with: pivot, support1, support2, resistance1, resistance2, close_lag_1, close_lag_3, close_lag_5, close_rolling_mean_5, high_lag_1, high_lag_3, high_lag_5, high_rolling_mean_5, low_lag_1, low_lag_3, low_lag_5, low_rolling_mean_5, open_lag_1, open_lag_3, open_lag_5, open_rolling_mean_5
+rsi correlated with: stoch_d
+stoch_k correlated with: stoch_d
+pivot correlated with: support1, support2, resistance1, resistance2, close_lag_1, close_lag_3, close_lag_5, close_rolling_mean_5, high_lag_1, high_lag_3, high_lag_5, high_rolling_mean_5, low_lag_1, low_lag_3, low_lag_5, low_rolling_mean_5, open_lag_1, open_lag_3, open_lag_5, open_rolling_mean_5
+support1 correlated with: support2, resistance1, resistance2, close_lag_1, close_lag_3, close_lag_5, close_rolling_mean_5, high_lag_1, high_lag_3, high_lag_5, high_rolling_mean_5, low_lag_1, low_lag_3, low_lag_5, low_rolling_mean_5, open_lag_1, open_lag_3, open_lag_5, open_rolling_mean_5
+support2 correlated with: resistance1, resistance2, close_lag_1, close_lag_3, close_lag_5, close_rolling_mean_5, high_lag_1, high_lag_3, high_lag_5, high_rolling_mean_5, low_lag_1, low_lag_3, low_lag_5, low_rolling_mean_5, open_lag_1, open_lag_3, open_lag_5, open_rolling_mean_5
+resistance1 correlated with: resistance2, close_lag_1, close_lag_3, close_lag_5, close_rolling_mean_5, high_lag_1, high_lag_3, high_lag_5, high_rolling_mean_5, low_lag_1, low_lag_3, low_lag_5, low_rolling_mean_5, open_lag_1, open_lag_3, open_lag_5, open_rolling_mean_5
+resistance2 correlated with: close_lag_1, close_lag_3, close_lag_5, close_rolling_mean_5, high_lag_1, high_lag_3, high_lag_5, high_rolling_mean_5, low_lag_1, low_lag_3, low_lag_5, low_rolling_mean_5, open_lag_1, open_lag_3, open_lag_5, open_rolling_mean_5
+close_lag_1 correlated with: close_lag_3, close_lag_5, close_rolling_mean_5, high_lag_1, high_lag_3, high_lag_5, high_rolling_mean_5, low_lag_1, low_lag_3, low_lag_5, low_rolling_mean_5, open_lag_1, open_lag_3, open_lag_5, open_rolling_mean_5
+close_lag_3 correlated with: close_lag_5, close_rolling_mean_5, high_lag_1, high_lag_3, high_lag_5, high_rolling_mean_5, low_lag_1, low_lag_3, low_lag_5, low_rolling_mean_5, open_lag_1, open_lag_3, open_lag_5, open_rolling_mean_5
+close_lag_5 correlated with: close_rolling_mean_5, high_lag_1, high_lag_3, high_lag_5, high_rolling_mean_5, low_lag_1, low_lag_3, low_lag_5, low_rolling_mean_5, open_lag_1, open_lag_3, open_lag_5, open_rolling_mean_5
+close_pct_change correlated with: close_pct_change_1
+close_pct_change_3 correlated with: low_pct_change_3
+close_pct_change_5 correlated with: high_pct_change_5, low_pct_change_5
+close_rolling_mean_5 correlated with: high_lag_1, high_lag_3, high_lag_5, high_rolling_mean_5, low_lag_1, low_lag_3, low_lag_5, low_rolling_mean_5, open_lag_1, open_lag_3, open_lag_5, open_rolling_mean_5
+close_rolling_std_5 correlated with: high_rolling_std_5, low_rolling_std_5
+high_lag_1 correlated with: high_lag_3, high_lag_5, high_rolling_mean_5, low_lag_1, low_lag_3, low_lag_5, low_rolling_mean_5, open_lag_1, open_lag_3, open_lag_5, open_rolling_mean_5
+high_lag_3 correlated with: high_lag_5, high_rolling_mean_5, low_lag_1, low_lag_3, low_lag_5, low_rolling_mean_5, open_lag_1, open_lag_3, open_lag_5, open_rolling_mean_5
+high_lag_5 correlated with: high_rolling_mean_5, low_lag_1, low_lag_3, low_lag_5, low_rolling_mean_5, open_lag_1, open_lag_3, open_lag_5, open_rolling_mean_5
+high_pct_change correlated with: high_pct_change_1
+high_pct_change_5 correlated with: open_pct_change_5
+high_rolling_mean_5 correlated with: low_lag_1, low_lag_3, low_lag_5, low_rolling_mean_5, open_lag_1, open_lag_3, open_lag_5, open_rolling_mean_5
+high_rolling_std_5 correlated with: open_rolling_std_5
+low_lag_1 correlated with: low_lag_3, low_lag_5, low_rolling_mean_5, open_lag_1, open_lag_3, open_lag_5, open_rolling_mean_5
+low_lag_3 correlated with: low_lag_5, low_rolling_mean_5, open_lag_1, open_lag_3, open_lag_5, open_rolling_mean_5
+low_lag_5 correlated with: low_rolling_mean_5, open_lag_1, open_lag_3, open_lag_5, open_rolling_mean_5
+low_pct_change correlated with: low_pct_change_1
+low_pct_change_5 correlated with: open_pct_change_5
+low_rolling_mean_5 correlated with: open_lag_1, open_lag_3, open_lag_5, open_rolling_mean_5
+low_rolling_std_5 correlated with: open_rolling_std_5
+open_lag_1 correlated with: open_lag_3, open_lag_5, open_rolling_mean_5
+open_lag_3 correlated with: open_lag_5, open_rolling_mean_5
+open_lag_5 correlated with: open_rolling_mean_5
+open_pct_change correlated with: open_pct_change_1

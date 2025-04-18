@@ -7,3 +7,6 @@
 # JetBrains IDE settings
 .idea/
 *.iml
+TrainedModels
+*.h5
+BacktestResults

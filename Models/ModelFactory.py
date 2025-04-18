@@ -7,17 +7,21 @@ import os
 import tensorflow as tf
 from typing import Optional, Tuple, Dict, Any
 
+from Utilities.PathResolver import PathResolver
+
 
 class ModelFactory:
     """Factory for creating model-related components."""
 
-    def __init__(self, config: Config, logger: Logger):
+    def __init__(self, config: Config, logger: Logger, path_resolver: Optional['PathResolver'] = None):
         self.config = config
         self.logger = logger
+        self.path_resolver = path_resolver
 
     def create_data_preprocessor(self, data_storage) -> DataPreprocessor:
         """Create a data preprocessor instance."""
-        return DataPreprocessor(self.config, self.logger, data_storage)
+        path_resolver = self.container.path_resolver()
+        return DataPreprocessor(self.config, self.logger, data_storage, path_resolver)
 
     def create_model_trainer(self, data_preprocessor: DataPreprocessor,
                              model: Optional[LSTMModel] = None) -> ModelTrainer:

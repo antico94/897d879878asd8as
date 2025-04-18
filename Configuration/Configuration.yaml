@@ -86,3 +86,5 @@ GoldTradingSettings:
         Horizons: [1, 3, 5]  # Predict 1, 3, and 5 periods ahead
       DirectionPrediction:
         Threshold: 0.001  # 0.1% price movement threshold for direction
+Paths:
+  FeatureAnalysisReport: "FeatureAnalysis/feature_analysis_report.txt"

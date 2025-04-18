@@ -9,6 +9,7 @@ from Strategies.StrategyFactory import StrategyFactory
 from Evaluation.BacktestFactory import BacktestFactory
 from UI.cli import TradingBotCLI
 from UI.Constants import AppMode
+from Utilities.PathResolver import PathResolver
 
 
 @inject
@@ -19,10 +20,11 @@ def main(
         processor_factory: ProcessorFactory = Provide[Container.processor_factory],
         model_factory: ModelFactory = Provide[Container.model_factory],
         strategy_factory: StrategyFactory = Provide[Container.strategy_factory],
+        path_resolver: PathResolver = Provide[Container.path_resolver],
         backtest_factory: BacktestFactory = Provide[Container.backtest_factory]
 ) -> None:
     logger.info('Application started')
-
+    model_factory = ModelFactory(config, logger, path_resolver)
     # Log configuration values
     mt5_login = config.get_nested('MetaTrader5', 'Login')
     logger.debug(f'MT5 login: {mt5_login}')

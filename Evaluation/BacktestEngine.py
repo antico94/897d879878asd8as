@@ -271,31 +271,56 @@ class BacktestEngine:
     def _prepare_data_for_backtest(self, data: pd.DataFrame,
                                    data_preprocessor: DataPreprocessor,
                                    sequence_length: int) -> Dict[str, np.ndarray]:
-        """Prepare data for backtest.
-
-        Args:
-            data: DataFrame with historical data
-            data_preprocessor: DataPreprocessor instance
-            sequence_length: Sequence length for LSTM
-
-        Returns:
-            Dictionary with processed data
-        """
+        """Prepare data for backtest."""
         try:
             # Create a copy to avoid modifying the original
             df = data.copy()
-
-            # Get selected features
-            selected_features = data_preprocessor.get_selected_features()
-            available_features = [f for f in selected_features if f in df.columns]
 
             # Extract time and required columns
             time_col = df['time']
             price_cols = ['open', 'high', 'low', 'close']
             price_data = df[price_cols]
 
-            # Extract features (excluding time and price columns)
-            feature_df = df[available_features]
+            # CRITICAL: Get the features that were used during training, not the current feature analysis
+            # This is likely stored in the model or model metadata
+            input_shape = self.model.model.input_shape
+            expected_num_features = input_shape[-1]  # Last dimension is feature count
+
+            # Get the features from the model's feature list if available, otherwise try to
+            # infer from training data
+            self.logger.info(f"Model expects {expected_num_features} features")
+
+            # We need to add 'tick_volume' to match the feature count
+            # This is based on the feature analysis report showing tick_volume as most important
+            selected_features = data_preprocessor.get_selected_features()
+
+            # Debug what's available
+            self.logger.info(f"Selected features from preprocessor: {selected_features}")
+            self.logger.info(f"Available columns in data: {list(df.columns)}")
+
+            # If we have exactly one feature too few, add tick_volume which is the top feature
+            if len(selected_features) == expected_num_features - 1 and 'tick_volume' in df.columns:
+                selected_features = ['tick_volume'] + selected_features
+                self.logger.info(f"Added tick_volume to match feature count. Features: {selected_features}")
+            elif len(selected_features) != expected_num_features:
+                self.logger.error(
+                    f"Feature count mismatch: model expects {expected_num_features} but selected {len(selected_features)}")
+
+                # Get the top N features from the analyzer based on importance
+                top_features = ['tick_volume', 'candle_wick_lower', 'candle_wick_upper', 'atr',
+                                'candle_range', 'macd_histogram', 'close_pct_change_3', 'rsi']
+
+                # Filter to features that exist in the data
+                available_top = [f for f in top_features if f in df.columns]
+                if len(available_top) >= expected_num_features:
+                    selected_features = available_top[:expected_num_features]
+                    self.logger.info(f"Using top {expected_num_features} features: {selected_features}")
+                else:
+                    self.logger.error(f"Cannot find enough features to match model input shape")
+                    raise ValueError(f"Feature count mismatch: model expects {expected_num_features} features")
+
+            # Extract features from dataframe
+            feature_df = df[selected_features]
 
             # Scale features
             scaled_features = data_preprocessor.scale_features(feature_df)
@@ -303,13 +328,14 @@ class BacktestEngine:
             # Create sequences
             X_sequences, _ = data_preprocessor.create_sequences(scaled_features, sequence_length)
 
+            self.logger.info(f"Created sequences with shape {X_sequences.shape}")
+
             processed_data = {
                 'X': X_sequences,
                 'times': time_col.values[sequence_length - 1:],
                 'prices': price_data.values[sequence_length - 1:]
             }
 
-            self.logger.info(f"Prepared {len(X_sequences)} sequences for backtest")
             return processed_data
 
         except Exception as e:

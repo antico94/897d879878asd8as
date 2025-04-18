@@ -9,17 +9,25 @@ import json
 class DataPreprocessor:
     """Prepares data for machine learning models, focusing on LSTM requirements."""
 
-    def __init__(self, config, logger, data_storage):
+    def __init__(self, config, logger, data_storage, path_resolver=None):
         self.config = config
         self.logger = logger
         self.data_storage = data_storage
+        self.path_resolver = path_resolver
         self.feature_importance = None
         self.selected_features = None
         self.scalers = {}
 
-    def load_feature_importance(self, file_path: str = "FeatureAnalysis/feature_analysis_report.txt") -> bool:
+    def load_feature_importance(self, file_path: str = None) -> bool:
         """Load feature importance information from analysis results."""
         try:
+            if file_path is None:
+                relative_path = "Analisys/FeatureAnalysis/feature_analysis_report.txt"
+                if self.path_resolver:
+                    file_path = self.path_resolver.resolve_path(relative_path)
+                else:
+                    file_path = relative_path
+
             if not os.path.exists(file_path):
                 self.logger.warning(f"Feature importance file not found: {file_path}")
                 return False

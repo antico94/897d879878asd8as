@@ -6,6 +6,7 @@ from Fetching.FetcherFactory import FetcherFactory
 from Models.ModelFactory import ModelFactory
 from Strategies.StrategyFactory import StrategyFactory
 from Evaluation.BacktestFactory import BacktestFactory
+from Utilities.PathResolver import PathResolver
 import logging
 
 
@@ -61,4 +62,9 @@ class Container(containers.DeclarativeContainer):
         BacktestFactory,
         config=config,
         logger=logger
+    )
+
+    path_resolver = providers.Singleton(
+        PathResolver,
+        config=config
     )

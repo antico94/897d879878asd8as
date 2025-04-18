@@ -396,15 +396,12 @@ class TradingBotCLI:
         }
 
     def backtest_menu(self) -> str:
-        """Menu for backtesting options."""
-        print("Backtesting Options:")
-        print("This will test trading strategies on historical data.")
-        print()
-
+        """Simplified menu for backtesting options."""
         choices = [
-            Choice("Run backtest", "run_backtest"),
-            Choice("View backtest results", "view_results"),
-            Choice("Go back", "back")
+            Choice("Run Backtest with Current Configuration", "run_current"),
+            Choice("Change Configuration", "change_config"),
+            Choice("View Backtest Results", "view_results"),
+            Choice("Go Back", "back")
         ]
 
         return questionary.select(

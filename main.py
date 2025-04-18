@@ -1,4 +1,12 @@
+import logging
+import os
+from datetime import datetime, timedelta
+
+import questionary
 from dependency_injector.wiring import inject, Provide
+from questionary import Choice
+
+from Configuration.Constants import CurrencyPairs
 from Utilities.Container import Container
 from Utilities.ConfigurationUtils import Config
 from Utilities.LoggingUtils import Logger
@@ -412,64 +420,61 @@ def handle_backtest(cli: TradingBotCLI, logger: Logger,
                     model_factory: ModelFactory,
                     strategy_factory: StrategyFactory,
                     backtest_factory: BacktestFactory) -> None:
-    """Handle backtesting flow"""
+    """Handle backtesting flow with improved UI."""
+    # Default configuration
+    default_config = {
+        'pair': "XAUUSD",
+        'timeframe': "H1",
+        'model_path': "TrainedModels/best_model.h5",
+        'start_date': (datetime.now() - timedelta(days=7)).strftime("%Y-%m-%d"),
+        'end_date': datetime.now().strftime("%Y-%m-%d")
+    }
+
     while True:
-        backtest_action = cli.backtest_menu()
+        # Display default configuration
+        print("\nCurrent Backtest Configuration:")
+        print(f"• Currency Pair: {CurrencyPairs.display_name(default_config['pair'])}")
+        print(f"• Timeframe: {default_config['timeframe']}")
+        print(f"• Period: {default_config['start_date']} to {default_config['end_date']}")
+        print(f"• Model: {default_config['model_path']}")
+        print()
+
+        # Show options
+        choices = [
+            Choice("Run Backtest with Current Configuration", "run_current"),
+            Choice("Change Configuration", "change_config"),
+            Choice("View Backtest Results", "view_results"),
+            Choice("Go Back", "back")
+        ]
+
+        backtest_action = questionary.select(
+            'Select an option:',
+            choices=choices
+        ).ask() or 'back'
 
         if backtest_action == "back":
             logger.info("Returning to main menu")
             break
 
-        elif backtest_action == "run_backtest":
-            logger.info("Running backtest")
-            backtest_config = cli.backtest_config_menu()
+        elif backtest_action == "run_current":
+            logger.info("Running backtest with current configuration")
+            run_backtest(logger, default_config, processor_factory, model_factory,
+                         strategy_factory, backtest_factory)
 
-            if backtest_config:
-                logger.info(f"Selected backtest config: {backtest_config}")
-                print(f"Running backtest for {backtest_config['pair']} {backtest_config['timeframe']} "
-                      f"from {backtest_config['start_date']} to {backtest_config['end_date']}...")
+        elif backtest_action == "change_config":
+            logger.info("Changing backtest configuration")
+            new_config = cli.backtest_config_menu()
 
-                # Get components for backtesting
-                data_storage = processor_factory.create_data_storage()
-                model = model_factory.load_model(backtest_config['model_path'])
-                signal_generator = strategy_factory.create_signal_generator()
-                risk_manager = strategy_factory.create_risk_manager()
-                backtest_engine = backtest_factory.create_backtest_engine(
-                    data_storage, model, signal_generator, risk_manager
-                )
+            if new_config:
+                # Update default configuration with new values
+                default_config.update(new_config)
+                logger.info(f"Updated backtest configuration: {default_config}")
 
-                try:
-                    # Run backtest
-                    results = backtest_engine.run_backtest(
-                        pair=backtest_config['pair'],
-                        timeframe=backtest_config['timeframe'],
-                        start_date=backtest_config['start_date'],
-                        end_date=backtest_config['end_date']
-                    )
-
-                    if results:
-                        # Generate performance report
-                        backtest_engine.generate_performance_report()
-
-                        # Display results summary
-                        metrics = results['metrics']
-                        print(f"✓ Backtest completed successfully:")
-                        print(f"  - Net profit: ${metrics.get('net_profit', 0):.2f}")
-                        print(f"  - Return: {metrics.get('return_pct', 0):.2f}%")
-                        print(f"  - Win rate: {metrics.get('win_rate', 0) * 100:.2f}%")
-                        print(f"  - Profit factor: {metrics.get('profit_factor', 0):.2f}")
-                        print(f"  - Max drawdown: {metrics.get('max_drawdown_pct', 0):.2f}%")
-                        print(f"  - Sharpe ratio: {metrics.get('sharpe_ratio', 0):.2f}")
-                        print(f"  - Total trades: {metrics.get('total_trades', 0)}")
-                        print(f"  - Detailed report saved to BacktestResults directory")
-                    else:
-                        print("✗ Backtest failed")
-                except Exception as e:
-                    logger.error(f"Error running backtest: {e}")
-                    print(f"✗ Error running backtest: {str(e)}")
-            else:
-                logger.info("Backtest configuration cancelled")
-                print("Backtest configuration cancelled")
+                # Ask if user wants to run backtest with new configuration
+                run_now = questionary.confirm("Run backtest with this new configuration?").ask()
+                if run_now:
+                    run_backtest(logger, default_config, processor_factory, model_factory,
+                                 strategy_factory, backtest_factory)
 
         elif backtest_action == "view_results":
             logger.info("Viewing backtest results")
@@ -480,20 +485,79 @@ def handle_backtest(cli: TradingBotCLI, logger: Logger,
                 print(f"Loading backtest results from {results_path}...")
 
                 try:
-                    # Load and display results
-                    backtest_engine = backtest_factory.create_backtest_engine(None, None, None, None)
-                    backtest_engine.load_results(results_path)
-                    backtest_engine.display_results_summary()
-
-                    print(f"✓ Results loaded successfully")
-                    print(f"  - Use the generated visualizations in {results_path} to analyze performance")
+                    results = backtest_factory.load_backtest_results(results_path)
+                    display_backtest_results(results)
                 except Exception as e:
                     logger.error(f"Error loading backtest results: {e}")
                     print(f"✗ Error loading backtest results: {str(e)}")
-            else:
-                logger.info("Results selection cancelled")
-                print("Results selection cancelled")
 
+
+def display_backtest_results(results):
+    """Display backtest results in a standardized format."""
+    if not results:
+        print("No results to display")
+        return
+
+    metrics = results.get('metrics', {})
+
+    print(f"\n═════════════ BACKTEST RESULTS ═════════════")
+    print(f"• Net profit: ${metrics.get('net_profit', 0):.2f}")
+    print(f"• Return: {metrics.get('return_pct', 0):.2f}%")
+    print(f"• Win rate: {metrics.get('win_rate', 0) * 100:.2f}%")
+    print(f"• Profit factor: {metrics.get('profit_factor', 0):.2f}")
+    print(f"• Max drawdown: {metrics.get('max_drawdown_pct', 0):.2f}%")
+    print(f"• Sharpe ratio: {metrics.get('sharpe_ratio', 0):.2f}")
+    print(f"• Total trades: {metrics.get('total_trades', 0)}")
+
+    if 'trades' in results:
+        winning_trades = sum(1 for t in results['trades'] if t.get('profit_loss', 0) > 0)
+        losing_trades = sum(1 for t in results['trades'] if t.get('profit_loss', 0) <= 0)
+        print(f"• Winning trades: {winning_trades}")
+        print(f"• Losing trades: {losing_trades}")
+
+    print(f"═══════════════════════════════════════════")
+    print(f"Detailed report available in BacktestResults directory")
+
+
+def run_backtest(logger, config, processor_factory, model_factory, strategy_factory, backtest_factory):
+    """Run a backtest with the given configuration."""
+    print(f"Running backtest for {CurrencyPairs.display_name(config['pair'])} {config['timeframe']} "
+          f"from {config['start_date']} to {config['end_date']}...")
+
+    try:
+        # Check if model file exists
+        if not os.path.exists(config['model_path']):
+            print(f"✗ Model file not found: {config['model_path']}")
+            return
+
+        # Get components for backtesting
+        data_storage = processor_factory.create_data_storage()
+        model = model_factory.load_model(config['model_path'])
+        signal_generator = strategy_factory.create_signal_generator()
+        risk_manager = strategy_factory.create_risk_manager()
+        backtest_engine = backtest_factory.create_backtest_engine(
+            data_storage, model, signal_generator, risk_manager
+        )
+
+        # Run backtest
+        results = backtest_engine.run_backtest(
+            pair=config['pair'],
+            timeframe=config['timeframe'],
+            start_date=config['start_date'],
+            end_date=config['end_date']
+        )
+
+        if results:
+            # Generate performance report
+            backtest_engine.generate_performance_report()
+
+            # Display results summary
+            display_backtest_results(results)
+        else:
+            print("✗ Backtest failed")
+    except Exception as e:
+        logger.error(f"Error running backtest: {e}")
+        print(f"✗ Error running backtest: {str(e)}")
 
 def handle_live_trading(cli: TradingBotCLI, logger: Logger,
                         processor_factory: ProcessorFactory,

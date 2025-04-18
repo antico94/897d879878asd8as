@@ -419,31 +419,48 @@ class MT5Connector:
             return {"retcode": -1, "message": str(e)}
 
     def _get_retcode_message(self, retcode: int) -> str:
-        """Get human-readable message for MT5 return code.
-
-        Args:
-            retcode: MT5 return code
-
-        Returns:
-            str: Human-readable message
-        """
+        """Get human-readable message for MT5 return code."""
+        # Define return codes directly rather than using constants
+        # This avoids issues with missing attributes in different MT5 versions
         return {
-            mt5.TRADE_RETCODE_DONE: "Done",
-            mt5.TRADE_RETCODE_REJECT: "Request rejected",
-            mt5.TRADE_RETCODE_CANCEL: "Request canceled by trader",
-            mt5.TRADE_RETCODE_TIMEOUT: "Request canceled by timeout",
-            mt5.TRADE_RETCODE_ERROR: "Request processing error",
-            mt5.TRADE_RETCODE_INVALID: "Invalid request",
-            mt5.TRADE_RETCODE_INVALID_VOLUME: "Invalid volume in request",
-            mt5.TRADE_RETCODE_INVALID_PRICE: "Invalid price in request",
-            mt5.TRADE_RETCODE_INVALID_STOPS: "Invalid stops in request",
-            mt5.TRADE_RETCODE_TRADE_DISABLED: "Trade is disabled",
-            mt5.TRADE_RETCODE_MARKET_CLOSED: "Market is closed",
-            mt5.TRADE_RETCODE_NO_MONEY: "Not enough money",
-            mt5.TRADE_RETCODE_PRICE_CHANGED: "Price changed",
-            mt5.TRADE_RETCODE_PRICE_OFF: "No quotes to process request",
-            mt5.TRADE_RETCODE_REQUOTE: "Requote",
-            mt5.TRADE_RETCODE_ORDER_LOCKED: "Order is locked",
-            mt5.TRADE_RETCODE_LIMIT_ORDERS: "Too many orders",
-            mt5.TRADE_RETCODE_LIMIT_VOLUME: "Volume limit exceeded"
+            0: "Done",
+            10004: "Requote",
+            10006: "Request rejected",
+            10007: "Request canceled by trader",
+            10008: "Order placed",
+            10009: "Request executed",
+            10010: "Request executed partially",
+            10011: "Request processing error",
+            10012: "Request canceled by timeout",
+            10013: "Invalid request",
+            10014: "Invalid volume",
+            10015: "Invalid price",
+            10016: "Invalid stops",
+            10017: "Trade disabled",
+            10018: "Market closed",
+            10019: "Not enough money",
+            10020: "Prices changed",
+            10021: "No quotes to process request",
+            10022: "Invalid order expiration date",
+            10023: "Order state changed",
+            10024: "Too many orders",
+            10025: "No changes in request",
+            10026: "Autotrading disabled by server",
+            10027: "Autotrading disabled by client terminal",
+            10028: "Request locked for processing",
+            10029: "Order or position frozen",
+            10030: "Invalid order filling type",
+            10031: "No connection with trade server",
+            10032: "Operation is allowed only for live accounts",
+            10033: "The number of pending orders has reached the limit",
+            10034: "The volume of orders and positions has reached the limit",
+            10035: "Incorrect or prohibited order type",
+            10036: "Position with the specified POSITION_IDENTIFIER already closed",
+            10038: "The close volume exceeds the current position volume",
+            10039: "The close volume exceeds the current position volume",
+            10040: "The close volume exceeds the current position volume",
+            10041: "The close volume exceeds the current position volume",
+            10042: "The close volume exceeds the current position volume",
+            10043: "The close volume exceeds the current position volume",
+            10044: "The close volume exceeds the current position volume"
         }.get(retcode, f"Unknown error code: {retcode}")

@@ -53,19 +53,13 @@ class SignalGenerator:
         self.logger.info(f"Signal thresholds loaded: {thresholds}")
         return thresholds
 
-    def generate_signals(self, predictions: Dict[str, np.ndarray],
-                         confidence: Optional[np.ndarray] = None,
+    # Add this method to the SignalGenerator class to handle
+    # cases where predictions are sometimes floats rather than arrays
+
+    def generate_signals(self, predictions: Dict[str, Any],
+                         confidence: Optional[Union[np.ndarray, float]] = None,
                          current_market_data: Optional[Dict[str, Any]] = None) -> List[Dict[str, Any]]:
-        """Generate trading signals from model predictions.
-
-        Args:
-            predictions: Dictionary with model predictions (direction, magnitude, volatility)
-            confidence: Optional array with prediction confidence scores
-            current_market_data: Optional dictionary with current market conditions
-
-        Returns:
-            List of signal dictionaries
-        """
+        """Generate trading signals from model predictions."""
         try:
             signals = []
 
@@ -74,6 +68,24 @@ class SignalGenerator:
             magnitudes = predictions.get('magnitude')
             volatilities = predictions.get('volatility', None)
 
+            # Handle case where direction_probs is a single float or int
+            if isinstance(direction_probs, (float, int)):
+                direction_probs = np.array([direction_probs])
+            elif isinstance(direction_probs, np.ndarray) and direction_probs.ndim == 0:
+                direction_probs = np.array([direction_probs.item()])
+
+            # Handle case where magnitudes is a single float or int
+            if isinstance(magnitudes, (float, int)):
+                magnitudes = np.array([magnitudes])
+            elif isinstance(magnitudes, np.ndarray) and magnitudes.ndim == 0:
+                magnitudes = np.array([magnitudes.item()])
+
+            # Handle case where volatilities is a single float or int
+            if isinstance(volatilities, (float, int)):
+                volatilities = np.array([volatilities])
+            elif isinstance(volatilities, np.ndarray) and volatilities.ndim == 0:
+                volatilities = np.array([volatilities.item()])
+
             if direction_probs is None or magnitudes is None:
                 self.logger.error("Missing required predictions for signal generation")
                 return []
@@ -81,6 +93,8 @@ class SignalGenerator:
             # If no confidence provided, assume maximum confidence
             if confidence is None:
                 confidence = np.ones_like(direction_probs)
+            elif isinstance(confidence, (float, int)):
+                confidence = np.array([confidence])
 
             # Process each prediction
             for i in range(len(direction_probs)):
@@ -108,10 +122,10 @@ class SignalGenerator:
                     'type': signal_type,
                     'direction_probability': float(direction_prob),
                     'expected_magnitude': float(magnitude),
-                    'confidence': float(confidence[i]),
+                    'confidence': float(confidence[i]) if isinstance(confidence, np.ndarray) else float(confidence),
                     'signal_strength': self.calculate_signal_strength(
                         float(direction_prob),
-                        float(confidence[i]),
+                        float(confidence[i]) if isinstance(confidence, np.ndarray) else float(confidence),
                         float(magnitude)
                     )
                 }
@@ -123,6 +137,8 @@ class SignalGenerator:
                 # Add timestamp if available in market data
                 if current_market_data and 'timestamp' in current_market_data:
                     signal['timestamp'] = current_market_data['timestamp']
+                elif current_market_data and 'time' in current_market_data:
+                    signal['timestamp'] = current_market_data['time']
 
                 # Add price information if available
                 if current_market_data and 'price' in current_market_data:

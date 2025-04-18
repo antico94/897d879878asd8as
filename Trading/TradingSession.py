@@ -3,6 +3,11 @@ import datetime
 import threading
 import time
 import random
+import numpy as np
+import pandas as pd
+from typing import Optional, Dict, Any, List, Union
+import datetime
+import MetaTrader5 as mt5
 
 
 class TradingSession:
@@ -254,51 +259,6 @@ class TradingSession:
             'account_balance': 10000  # Default account balance for risk calculations
         }
 
-    def _generate_predictions(self, market_data: Dict[str, Any]) -> Dict[str, Any]:
-        """Generate model predictions.
-
-        In a real implementation, this would prepare data and run the model.
-
-        Args:
-            market_data: Current market data
-
-        Returns:
-            Dictionary with predictions
-        """
-        try:
-            # In a real implementation, this would prepare sequences from market data
-            # and run the model.prediction method
-
-            # For now, if we have a model, we'll simulate predictions
-            if self.model:
-                # Create a dummy sequence for prediction
-                # This is just a placeholder - in a real implementation you would
-                # prepare proper sequences from market data
-                import numpy as np
-                dummy_sequence = np.random.random((1, 24, 10))  # 1 sample, 24 timesteps, 10 features
-
-                # Try to get real predictions from model
-                try:
-                    predictions = self.model.predict(dummy_sequence)
-                    return predictions
-                except Exception as e:
-                    self.logger.error(f"Error generating model predictions: {e}")
-
-            # Fallback to random predictions
-            return {
-                'direction': random.uniform(0, 1),  # Probability of up movement
-                'magnitude': random.uniform(0.1, 2.0),  # Expected price movement in %
-                'volatility': random.uniform(0.1, 1.0)  # Expected volatility
-            }
-
-        except Exception as e:
-            self.logger.error(f"Error generating predictions: {e}")
-            # Return default predictions
-            return {
-                'direction': 0.5,  # Neutral
-                'magnitude': 0.5,
-                'volatility': 0.5
-            }
 
     def _generate_signals(self, predictions: Dict[str, Any], market_data: Dict[str, Any]) -> List[Dict[str, Any]]:
         """Generate trading signals from predictions.
@@ -338,49 +298,61 @@ class TradingSession:
             return []
 
     def _execute_trades(self, signals: List[Dict[str, Any]], market_data: Dict[str, Any]) -> None:
-        """Execute trades based on signals.
-
-        Args:
-            signals: List of trading signals
-            market_data: Current market data
-        """
+        """Execute trades based on signals."""
         try:
             # Check if we have signals and if we can open more positions
-            max_positions = self.config.get_nested('GoldTradingSettings', 'RiskManagement', 'max_open_trades', 5)
+            max_positions = 5  # Default max positions
+
+            # Try to get from config if available
+            try:
+                config_max_positions = self.config.get_nested('GoldTradingSettings', 'RiskManagement',
+                                                              'max_open_trades')
+                if config_max_positions is not None:
+                    max_positions = config_max_positions
+            except Exception as e:
+                self.logger.warning(f"Could not get max_open_trades from config: {e}")
+
             if not signals or len(self.active_trades) >= max_positions:
                 return
 
             for signal in signals:
                 # Let the trade executor handle the trade
                 if self.trade_executor:
-                    trade_result = self.trade_executor.execute_trade(signal, market_data)
+                    try:
+                        trade_result = self.trade_executor.execute_trade(signal, market_data)
 
-                    if trade_result:
-                        # Add to active trades
-                        trade_id = trade_result.get('id', f"T{int(time.time())}")
-                        self.active_trades[trade_id] = trade_result
+                        if trade_result:
+                            # Add to active trades
+                            trade_id = trade_result.get('id', f"T{int(time.time())}")
+                            self.active_trades[trade_id] = trade_result
 
-                        # Update statistics
-                        self.stats['open_positions'] += 1
+                            # Update statistics
+                            self.stats['open_positions'] += 1
 
-                        self.logger.info(
-                            f"Executed trade: {trade_id} {trade_result.get('direction')} at {trade_result.get('entry_price')}")
+                            self.logger.info(
+                                f"Executed trade: {trade_id} {trade_result.get('direction')} at {trade_result.get('entry_price')}")
+                    except Exception as e:
+                        self.logger.error(f"Error in trade execution: {e}")
                 else:
                     # Simulate trade execution without the executor
+                    import time
                     trade_id = f"T{int(time.time())}"
+
+                    # Get signal type as string
+                    signal_type_str = signal['type'].value if hasattr(signal['type'], 'value') else str(signal['type'])
 
                     # Create a simple trade record
                     trade = {
                         'id': trade_id,
                         'symbol': market_data['symbol'],
-                        'direction': signal['type'].name,
+                        'direction': signal_type_str,
                         'entry_price': market_data['price'],
                         'position_size': 0.1,  # Fixed size for demo
-                        'stop_loss': market_data['price'] * 0.99 if 'BUY' in signal['type'].name else market_data[
-                                                                                                          'price'] * 1.01,
-                        'take_profit': market_data['price'] * 1.02 if 'BUY' in signal['type'].name else market_data[
-                                                                                                            'price'] * 0.98,
-                        'signal_type': signal['type'].name,
+                        'stop_loss': market_data['price'] * 0.99 if 'BUY' in signal_type_str else market_data[
+                                                                                                      'price'] * 1.01,
+                        'take_profit': market_data['price'] * 1.02 if 'BUY' in signal_type_str else market_data[
+                                                                                                        'price'] * 0.98,
+                        'signal_type': signal_type_str,
                         'open_time': datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                         'signal_strength': signal.get('signal_strength', 0)
                     }
@@ -486,3 +458,204 @@ class TradingSession:
 
         except Exception as e:
             self.logger.error(f"Error updating statistics: {e}")
+
+    # Add these methods to your TradingSession class
+
+    def _generate_predictions(self, market_data: Dict[str, Any]) -> Dict[str, Any]:
+        """Generate model predictions."""
+        try:
+            # Only proceed if we have a model
+            if not self.model:
+                self.logger.error("No model available for predictions")
+                return self._get_default_predictions()
+
+            # Get historical data for sequence preparation
+            historical_data = self._get_historical_data(market_data['symbol'], market_data['timeframe'], 100)
+
+            if historical_data.empty:
+                self.logger.error("Could not retrieve historical data for prediction")
+                return self._get_default_predictions()
+
+            # If this is first run, initialize the data preparer
+            if not hasattr(self, 'data_preparer'):
+                # Import here to avoid circular imports
+                from Trading.DataPreparer import DataPreparer
+                self.data_preparer = DataPreparer(self.logger)
+                self.logger.info(f"Initialized data preparer with features: {self.data_preparer.feature_list}")
+
+            # Prepare sequence for prediction
+            sequence = self.data_preparer.prepare_sequence(market_data, historical_data)
+
+            # Get input shape from model and validate
+            if hasattr(self.model, 'model') and self.model.model is not None:
+                expected_shape = self.model.model.input_shape[1:]  # (sequence_length, n_features)
+                actual_shape = sequence.shape[1:]
+
+                if expected_shape != actual_shape:
+                    self.logger.warning(
+                        f"Sequence shape mismatch: expected {expected_shape}, got {actual_shape}. "
+                        f"Attempting to adjust sequence."
+                    )
+
+                    # Adjust number of features if necessary
+                    if expected_shape[1] != actual_shape[1]:
+                        # Pad or truncate features to match expected shape
+                        n_expected_features = expected_shape[1]
+                        if actual_shape[1] > n_expected_features:
+                            # Truncate features
+                            sequence = sequence[:, :, :n_expected_features]
+                        else:
+                            # Pad with zeros
+                            pad_width = ((0, 0), (0, 0), (0, n_expected_features - actual_shape[1]))
+                            sequence = np.pad(sequence, pad_width, 'constant')
+
+                        self.logger.info(f"Adjusted sequence shape to {sequence.shape}")
+
+            # Get predictions from model
+            try:
+                predictions = self.model.predict(sequence)
+                self.logger.info(f"Generated predictions: {predictions}")
+                return predictions
+            except Exception as e:
+                self.logger.error(f"Error in model prediction: {e}")
+                return self._get_default_predictions()
+
+        except Exception as e:
+            self.logger.error(f"Error generating predictions: {e}")
+            return self._get_default_predictions()
+
+    def _get_historical_data(self, symbol: str, timeframe: str, bars: int = 100) -> pd.DataFrame:
+        """Get historical data for prediction."""
+        try:
+            # Try to get data from MT5 if available
+            if self.mt5_connector and self.mt5_connector.is_connected():
+                try:
+                    # Import MT5 here to ensure it's available
+                    import MetaTrader5 as mt5
+
+                    # Get the MT5 timeframe enum value
+                    timeframe_map = {
+                        "M15": mt5.TIMEFRAME_M15,
+                        "H1": mt5.TIMEFRAME_H1,
+                        "H4": mt5.TIMEFRAME_H4,
+                        "D1": mt5.TIMEFRAME_D1
+                    }
+                    mt5_timeframe = timeframe_map.get(timeframe.upper())
+
+                    if mt5_timeframe is None:
+                        self.logger.error(f"Invalid timeframe: {timeframe}")
+                        return pd.DataFrame()
+
+                    # Fetch rates directly - ensure we get enough bars for sequence
+                    rates = mt5.copy_rates_from_pos(symbol, mt5_timeframe, 0, bars)
+
+                    if rates is None or len(rates) == 0:
+                        self.logger.error(f"No data received for {symbol} with timeframe {timeframe}")
+                        return pd.DataFrame()
+
+                    # Convert to DataFrame
+                    df = pd.DataFrame(rates)
+                    df['time'] = pd.to_datetime(df['time'], unit='s')
+
+                    # Log the number of bars retrieved
+                    self.logger.info(f"Retrieved {len(df)} bars of historical data for {symbol} {timeframe}")
+
+                    # Calculate technical indicators
+                    from Processing.TechnicalIndicators import TechnicalIndicators
+                    indicators = TechnicalIndicators()
+
+                    try:
+                        # Add MACD
+                        df = indicators.calculate_macd(df)
+
+                        # Add RSI
+                        df = indicators.calculate_rsi(df)
+
+                        # Add Stochastic
+                        df = indicators.calculate_stochastic(df)
+
+                        # Calculate percentage changes
+                        df['close_pct_change'] = df['close'].pct_change()
+                        df['close_pct_change_3'] = df['close'].pct_change(3)
+                        df['close_pct_change_5'] = df['close'].pct_change(5)
+                        df['high_pct_change_3'] = df['high'].pct_change(3)
+
+                        # Add pivot points for resistance2
+                        df = indicators.calculate_pivot_points(df)
+
+                        # Fill NaN values
+                        df = df.fillna(0)
+
+                        self.logger.info(f"Added technical indicators to historical data")
+
+                    except Exception as e:
+                        self.logger.error(f"Error calculating indicators: {e}")
+
+                    return df
+
+                except Exception as e:
+                    self.logger.error(f"Error fetching data from MT5: {e}")
+
+            # If we can't get data from MT5, try creating a dummy dataset for testing
+            self.logger.warning("MT5 not available, creating dummy dataset for testing")
+
+            # Create dummy data with correct number of rows and all required features
+            dummy_data = []
+            current_price = 1900.0  # Sample gold price
+
+            for i in range(bars):
+                timestamp = datetime.datetime.now() - datetime.timedelta(hours=i)
+                close_price = current_price + np.random.normal(0, 5)
+                high_price = close_price + abs(np.random.normal(0, 2))
+                low_price = close_price - abs(np.random.normal(0, 2))
+                open_price = close_price + np.random.normal(0, 3)
+
+                dummy_data.append({
+                    'time': timestamp,
+                    'open': open_price,
+                    'high': high_price,
+                    'low': low_price,
+                    'close': close_price,
+                    'tick_volume': int(np.random.normal(1000, 300)),
+                    'spread': 5,
+                    'real_volume': 0
+                })
+
+            # Convert to DataFrame
+            dummy_df = pd.DataFrame(dummy_data)
+
+            # Add technical indicators
+            from Processing.TechnicalIndicators import TechnicalIndicators
+            indicators = TechnicalIndicators()
+
+            # Add basic indicators
+            dummy_df = indicators.calculate_macd(dummy_df)
+            dummy_df = indicators.calculate_rsi(dummy_df)
+            dummy_df = indicators.calculate_stochastic(dummy_df)
+
+            # Calculate percentage changes
+            dummy_df['close_pct_change'] = dummy_df['close'].pct_change()
+            dummy_df['close_pct_change_3'] = dummy_df['close'].pct_change(3)
+            dummy_df['close_pct_change_5'] = dummy_df['close'].pct_change(5)
+            dummy_df['high_pct_change_3'] = dummy_df['high'].pct_change(3)
+
+            # Add pivot points
+            dummy_df = indicators.calculate_pivot_points(dummy_df)
+
+            # Fill NaN values
+            dummy_df = dummy_df.fillna(0)
+
+            self.logger.info(f"Created dummy dataset with {len(dummy_df)} rows for testing")
+            return dummy_df
+
+        except Exception as e:
+            self.logger.error(f"Error getting historical data: {e}")
+            return pd.DataFrame()
+
+    def _get_default_predictions(self) -> Dict[str, Any]:
+        """Get default predictions when model fails."""
+        return {
+            'direction': 0.5,  # Neutral
+            'magnitude': 0.5,
+            'volatility': 0.5
+        }

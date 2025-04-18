@@ -54,9 +54,9 @@ class BacktestEngine:
             'initial_balance': 10000,  # Initial account balance
             'position_size_mode': 'risk',  # 'fixed' or 'risk'
             'fixed_position_size': 0.1,  # Fixed position size if using fixed mode
-            'risk_per_trade': 0.01,  # Risk per trade if using risk mode
+            'risk_per_trade': 0.05,  # Risk per trade if using risk mode
             'spread_pips': 1.5,  # Spread in pips
-            'commission_per_lot': 7,  # Commission per lot (round turn)
+            'commission_per_lot': 0,  # Commission per lot (round turn)
             'slippage_pips': 0.5,  # Slippage in pips
             'use_sl_tp': True,  # Whether to use stop loss and take profit
             'enable_partial_close': True,  # Enable partial position closing

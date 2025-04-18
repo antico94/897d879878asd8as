@@ -1,4 +1,4 @@
-from typing import Dict, Any, Tuple, Optional
+from typing import Dict, Any, Optional
 from Strategies.SignalGenerator import SignalType
 
 
@@ -20,17 +20,17 @@ class RiskManager:
         trading_settings = self.config.get('GoldTradingSettings', {})
         risk_config = trading_settings.get('RiskManagement', {})
 
-        # Default risk parameters
+        # Adjusted default risk parameters for small account
         default_params = {
-            'max_risk_per_trade': 0.02,  # Maximum account % to risk per trade
-            'base_risk_per_trade': 0.01,  # Base risk % for moderate signals
-            'max_position_size_factor': 0.1,  # Maximum position size as % of account
-            'stop_loss_atr_multiplier': 1.5,  # ATR multiplier for stop loss calculation
-            'stop_loss_volatility_factor': 0.5,  # Factor to adjust stop based on predicted volatility
-            'take_profit_risk_ratio': 2.0,  # Risk:reward ratio for take profit calculation
-            'partial_take_profit_level': 0.5,  # Level at which to take partial profits (R multiple)
-            'partial_take_profit_pct': 0.5,  # Percentage of position to close at partial TP
-            'breakeven_level': 1.0,  # Move to breakeven at this R multiple
+            'max_risk_per_trade': 0.05,  # Increased to 5% for small account
+            'base_risk_per_trade': 0.03,  # Slightly higher base risk
+            'max_position_size_factor': 0.2,  # Increased position size potential
+            'stop_loss_atr_multiplier': 1.5,  # Maintained
+            'stop_loss_volatility_factor': 0.5,  # Maintained
+            'take_profit_risk_ratio': 2.0,  # Maintained
+            'partial_take_profit_level': 0.5,  # Maintained
+            'partial_take_profit_pct': 0.5,  # Maintained
+            'breakeven_level': 1.0,  # Maintained
         }
 
         # Update with values from config if they exist
@@ -46,9 +46,9 @@ class RiskManager:
                                 account_balance: Optional[float] = None) -> float:
         """Calculate appropriate position size based on risk parameters."""
         try:
-            # Get account balance from account info if not provided
+            # Use $50 as default account balance
             if account_balance is None:
-                account_balance = self.account_info.get('balance', 10000.0)  # Default to 10,000 if not available
+                account_balance = self.account_info.get('balance', 50.0)
 
             # Adjust risk based on signal strength
             signal_strength = signal.get('signal_strength', 0.5)
@@ -82,10 +82,9 @@ class RiskManager:
                 self.logger.warning("Stop loss is zero or negative, using minimum position size")
                 position_size = 0.01  # Minimum position size
 
-            # Cap position size based on account size
-            max_position_size = account_balance * self.risk_params[
-                'max_position_size_factor'] / 100000  # Convert to lots
-            position_size = min(position_size, max_position_size)
+            # Cap position size based on account leverage
+            max_leveraged_position = (account_balance * 100) / 100000  # 1:100 leverage
+            position_size = min(position_size, max_leveraged_position)
 
             # Round to 2 decimal places (0.01 lot precision)
             position_size = round(position_size, 2)

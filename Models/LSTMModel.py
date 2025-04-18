@@ -3,12 +3,12 @@ from tensorflow.keras.models import Model, Sequential, load_model
 from tensorflow.keras.layers import Dense, LSTM, Input, Dropout, Bidirectional, Concatenate
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.callbacks import ModelCheckpoint, EarlyStopping, ReduceLROnPlateau
-from tensorflow.keras.utils import plot_model
+from tensorflow.keras.utils import plot_model, register_keras_serializable
 import numpy as np
 import os
 from typing import Dict, List, Any, Tuple, Optional, Union
 
-
+@register_keras_serializable(package='Custom', name='AttentionLayer')
 class AttentionLayer(tf.keras.layers.Layer):
     """Custom attention mechanism to focus on important time steps."""
 
@@ -16,10 +16,16 @@ class AttentionLayer(tf.keras.layers.Layer):
         super(AttentionLayer, self).__init__(**kwargs)
 
     def build(self, input_shape):
-        self.W = self.add_weight(name="attention_weight", shape=(input_shape[-1], 1),
-                                 initializer="normal")
-        self.b = self.add_weight(name="attention_bias", shape=(input_shape[1], 1),
-                                 initializer="zeros")
+        self.W = self.add_weight(
+            name="attention_weight",
+            shape=(input_shape[-1], 1),
+            initializer="normal"
+        )
+        self.b = self.add_weight(
+            name="attention_bias",
+            shape=(input_shape[1], 1),
+            initializer="zeros"
+        )
         super(AttentionLayer, self).build(input_shape)
 
     def call(self, x):
@@ -34,6 +40,12 @@ class AttentionLayer(tf.keras.layers.Layer):
         context = tf.reduce_sum(context, axis=1)
 
         return context
+
+    def get_config(self):
+        config = super(AttentionLayer, self).get_config()
+        # no additional args to add here, but if you add hyperparameters in __init__,
+        # include them in this dict
+        return config
 
 
 class LSTMModel:
@@ -252,11 +264,8 @@ class LSTMModel:
         return metrics
 
     def save_model(self, path: str) -> None:
-        """Save the model to file.
+        """Save the model to file."""
 
-        Args:
-            path: Path to save the model
-        """
         if self.model is None:
             raise ValueError("No model to save. Build or load a model first.")
 
@@ -267,19 +276,21 @@ class LSTMModel:
         self.model.save(path, save_format='h5')
 
     def load_model(self, path: str) -> None:
-        """Load model from file.
+        """Load model from file."""
 
-        Args:
-            path: Path to the model file
-        """
         if not os.path.exists(path):
             raise FileNotFoundError(f"Model file not found: {path}")
 
-        # Load model with custom objects
-        self.model = load_model(path, custom_objects={'AttentionLayer': AttentionLayer})
+        # Load model with custom objects so AttentionLayer is recognized
+        self.model = load_model(
+            path,
+            compile=False,
+            custom_objects={'AttentionLayer': AttentionLayer}
+        )
 
     def get_model_summary(self) -> str:
         """Get model summary as a string."""
+
         if self.model is None:
             return "Model not built yet"
 

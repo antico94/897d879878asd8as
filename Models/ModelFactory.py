@@ -1,6 +1,6 @@
 from Utilities.ConfigurationUtils import Config
 from Utilities.LoggingUtils import Logger
-from Models.LSTMModel import LSTMModel
+from Models.LSTMModel import LSTMModel, AttentionLayer
 from Training.DataPreprocessor import DataPreprocessor
 from Training.ModelTrainer import ModelTrainer
 import os
@@ -37,15 +37,19 @@ class ModelFactory:
                 self.logger.error(f"Model file not found: {model_path}")
                 raise FileNotFoundError(f"Model file not found: {model_path}")
 
-            # Load Keras model to get input shape
-            keras_model = tf.keras.models.load_model(model_path, compile=False)
+            # Load Keras model to get input shape, registering the custom layer
+            keras_model = tf.keras.models.load_model(
+                model_path,
+                compile=False,
+                custom_objects={'AttentionLayer': AttentionLayer}
+            )
             input_shape = keras_model.input_shape[1:]  # Remove batch dimension
             n_features = input_shape[1]
 
-            # Create LSTM model with appropriate dimensions
+            # Create LSTMModel with appropriate dimensions
             model = LSTMModel(self.config, input_shape, n_features)
 
-            # Load saved weights
+            # Load weights (AttentionLayer is already registered)
             model.load_model(model_path)
 
             self.logger.info(f"Model loaded successfully with input shape {input_shape}")
@@ -57,7 +61,6 @@ class ModelFactory:
 
     def create_ensemble_model(self, n_models: int = 5) -> Dict[str, Any]:
         """Create an ensemble of models (placeholder for now)."""
-        # This would be expanded in a full implementation with a proper EnsembleModel class
         self.logger.info(f"Creating ensemble model with {n_models} models")
 
         # Placeholder implementation

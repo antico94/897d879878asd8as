@@ -252,11 +252,7 @@ class LSTMModel:
         return metrics
 
     def save_model(self, path: str) -> None:
-        """Save the model to file.
-
-        Args:
-            path: Path to save the model
-        """
+        """Save the model to file with custom objects."""
         if self.model is None:
             raise ValueError("No model to save. Build or load a model first.")
 
@@ -264,14 +260,10 @@ class LSTMModel:
         os.makedirs(os.path.dirname(path), exist_ok=True)
 
         # Save the model with custom objects
-        self.model.save(path, save_format='h5')
+        self.model.save(path, save_format='h5', custom_objects={'AttentionLayer': AttentionLayer})
 
     def load_model(self, path: str) -> None:
-        """Load model from file.
-
-        Args:
-            path: Path to the model file
-        """
+        """Load model from file with custom objects."""
         if not os.path.exists(path):
             raise FileNotFoundError(f"Model file not found: {path}")
 

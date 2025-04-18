@@ -1,5 +1,5 @@
 from typing import Dict, Any, Tuple, Optional
-from SignalGenerator import SignalType
+from Strategies.SignalGenerator import SignalType
 
 
 class RiskManager:

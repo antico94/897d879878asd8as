@@ -3,8 +3,8 @@ import time
 from datetime import datetime
 from enum import Enum
 
-from SignalGenerator import SignalType
-from RiskManager import RiskManager
+from Strategies.SignalGenerator import SignalType
+from Strategies.RiskManager import RiskManager
 
 
 class OrderType(Enum):

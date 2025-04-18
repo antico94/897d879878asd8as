@@ -6,8 +6,8 @@ import matplotlib.pyplot as plt
 from typing import Dict, List, Any, Tuple, Optional, Union
 from datetime import datetime
 
-from LSTMModel import LSTMModel
-from DataPreprocessor import DataPreprocessor
+from Models.LSTMModel import LSTMModel
+from Training.DataPreprocessor import DataPreprocessor
 
 
 class LossHistory(tf.keras.callbacks.Callback):

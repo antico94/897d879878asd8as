@@ -226,7 +226,7 @@ class BacktestEngine:
         """
         try:
             # Get data from storage
-            data_type = "training"  # Use training data set
+            data_type = "testing"  # Use testing data set
             X, y = self.data_storage.load_processed_data(pair, timeframe, data_type)
 
             if X.empty:

@@ -10,3 +10,4 @@
 TrainedModels
 *.h5
 BacktestResults
+print_project_structure.py

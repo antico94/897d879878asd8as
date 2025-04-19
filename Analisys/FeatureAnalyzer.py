@@ -145,7 +145,7 @@ class FeatureAnalyzer:
 
             # Use Random Forest with RFE
             model = RandomForestRegressor(n_estimators=100, random_state=42)
-            rfe = RFE(estimator=model, n_features_to_select=n_features, step=1)
+            rfe = RFE(estimator=model, n_features_to_select=n_features, step=5)
             rfe.fit(X_scaled, y[target_col])
 
             # Get selected features

@@ -273,17 +273,7 @@ class DataPreprocessor:
 
     def prepare_dataset(self, pair: str = "XAUUSD", timeframe: str = "H1",
                         dataset_type: str = "training", sequence_length: int = 24) -> Dict[str, Any]:
-        """Prepare complete dataset for model training.
-
-        Args:
-            pair: Currency pair to process
-            timeframe: Timeframe to use
-            dataset_type: Dataset type (training, validation, testing)
-            sequence_length: Length of sequences for LSTM
-
-        Returns:
-            Dictionary with complete prepared dataset
-        """
+        """Prepare complete dataset for model training."""
         try:
             # Load processed data from storage
             X, y = self.data_storage.load_processed_data(pair, timeframe, dataset_type)
@@ -301,7 +291,7 @@ class DataPreprocessor:
             # Extract time column before filtering features
             time_col = None
             if 'time' in X.columns:
-                time_col = X['time']
+                time_col = X['time'].copy()
                 X = X.drop('time', axis=1)
 
             # Filter to use only selected features
@@ -310,11 +300,14 @@ class DataPreprocessor:
                 self.logger.warning("None of the selected features found in data, using all features")
                 available_features = X.columns
 
-            X_filtered = X[available_features]
+            # Create a proper copy of the filtered DataFrame to avoid SettingWithCopyWarning
+            X_filtered = X[available_features].copy()
 
-            # Add time back
+            # Add time back using proper pandas assignment
             if time_col is not None:
-                X_filtered['time'] = time_col
+                # Use proper DataFrame assignment to avoid the warning
+                X_filtered = pd.DataFrame(X_filtered)  # Ensure it's a DataFrame
+                X_filtered.loc[:, 'time'] = time_col.values
 
             # Scale features (with importance weighting if available)
             X_scaled = self.scale_features(X_filtered, self.feature_importance)
@@ -322,8 +315,35 @@ class DataPreprocessor:
             # Create sequences
             X_sequences, sequence_times = self.create_sequences(X_scaled, sequence_length)
 
-            # Prepare multi-target outputs
-            y_targets = self.prepare_multi_target(y)
+            # Store original data length for logging
+            original_length = len(y)
+
+            # Calculate the offset needed to align targets with sequences
+            # When creating sequences, we lose (sequence_length - 1) samples from the beginning
+            offset = sequence_length - 1
+
+            # Make a deep copy of the targets DataFrame with the correct aligned range
+            # This ensures we only keep targets that correspond to the end of each sequence
+            aligned_y = y.iloc[offset:].copy() if offset < len(y) else pd.DataFrame()
+
+            if len(aligned_y) != len(X_sequences):
+                self.logger.error(f"Dimension mismatch after alignment: X={len(X_sequences)}, y={len(aligned_y)}")
+                self.logger.error(f"Original y length: {original_length}, Offset: {offset}")
+                raise ValueError(f"Failed to align X and y dimensions: X={len(X_sequences)}, y={len(aligned_y)}")
+
+            # Prepare multi-target outputs from the aligned dataframe
+            y_targets = self.prepare_multi_target(aligned_y)
+
+            # Verify all target arrays have the same length as X_sequences
+            for target_name, target_array in y_targets.items():
+                if len(target_array) != len(X_sequences):
+                    self.logger.error(f"Dimension mismatch for target {target_name}: "
+                                      f"X={len(X_sequences)}, y={len(target_array)}")
+                    raise ValueError(f"Target {target_name} has incorrect dimensions")
+
+            # Log the alignment results
+            self.logger.info(f"Aligned targets with sequences: X={len(X_sequences)}, "
+                             f"y={len(aligned_y)} (original y={original_length})")
 
             # Split data temporally
             dataset = self.split_data_temporal(X_sequences, y_targets)

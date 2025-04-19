@@ -11,6 +11,8 @@ from ReportGeneration.Sections.equity_section import generate_equity_section
 from ReportGeneration.Sections.performance_section import generate_performance_section
 from ReportGeneration.Sections.summary_section import generate_summary_section
 from ReportGeneration.ReportUtils.html_utils import create_html_report
+from ReportGeneration.Sections.confidence_risk_section import generate_confidence_risk_section
+
 
 
 def generate_backtest_report(backtest_results, output_dir=None, open_browser=True):
@@ -39,6 +41,7 @@ def generate_backtest_report(backtest_results, output_dir=None, open_browser=Tru
         equity_html = generate_equity_section(backtest_results)
         performance_html = generate_performance_section(backtest_results)
         summary_html = generate_summary_section(backtest_results)
+        confidence_risk_html = generate_confidence_risk_section(backtest_results)
 
         # Create the full HTML report
         html_content = create_html_report({
@@ -47,7 +50,8 @@ def generate_backtest_report(backtest_results, output_dir=None, open_browser=Tru
             'performance': performance_html,
             'equity': equity_html,
             'trades': trades_html,
-            'accuracy': accuracy_html
+            'accuracy': accuracy_html,
+            'confidence_risk': confidence_risk_html
         }, timestamp)
 
         # Write report to file

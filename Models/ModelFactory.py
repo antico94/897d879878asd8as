@@ -20,7 +20,7 @@ class ModelFactory:
 
     def create_data_preprocessor(self, data_storage) -> DataPreprocessor:
         """Create a data preprocessor instance."""
-        path_resolver = self.container.path_resolver()
+        path_resolver = self.path_resolver
         return DataPreprocessor(self.config, self.logger, data_storage, path_resolver)
 
     def create_model_trainer(self, data_preprocessor: DataPreprocessor,

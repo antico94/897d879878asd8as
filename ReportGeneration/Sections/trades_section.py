@@ -190,7 +190,7 @@ def generate_trades_section(backtest_results):
     """
 
     # Show up to 10 recent trades
-    recent_trades = sorted(trades, key=lambda x: x.get('entry_time', ''), reverse=True)[:10]
+    recent_trades = sorted(trades, key=lambda x: x.get('entry_time', ''), reverse=True)
 
     for trade in recent_trades:
         trade_id = trade.get('id', '')

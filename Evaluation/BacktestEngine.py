@@ -128,6 +128,14 @@ class BacktestEngine:
             # Process data for prediction
             processed_data = self._prepare_data_for_backtest(data, data_preprocessor, sequence_length)
 
+            # Initialize prediction tracking
+            predictions_data = {
+                'actual_directions': [],
+                'predicted_directions': [],
+                'confidence_values': [],
+                'timestamps': []
+            }
+
             # Run the backtest
             for i in range(sequence_length, len(data)):
                 # Current data point
@@ -152,6 +160,32 @@ class BacktestEngine:
                 # Get prediction for this data point
                 X_sequence = processed_data['X'][i - sequence_length]
                 prediction = self.model.predict(np.array([X_sequence]))
+
+                # Store prediction for accuracy analysis
+                if i < len(data) - 1:  # Ensure we have a next bar to check actual direction
+                    # Record prediction details
+                    next_price = data.iloc[i + 1]['close']
+
+                    # Determine actual direction (1 for up, 0 for down)
+                    actual_direction = 1 if next_price > current_price else 0
+
+                    # Get predicted direction from the model output
+                    if isinstance(prediction, dict) and 'direction' in prediction:
+                        pred_direction_prob = prediction['direction']
+                        if isinstance(pred_direction_prob, np.ndarray):
+                            pred_direction_prob = pred_direction_prob[0]
+                        predicted_direction = 1 if pred_direction_prob > 0.5 else 0
+                        confidence = abs(pred_direction_prob - 0.5) * 2  # Scale to 0-1
+                    else:
+                        # Default if prediction format doesn't match expected
+                        predicted_direction = None
+                        confidence = None
+
+                    if predicted_direction is not None:
+                        predictions_data['actual_directions'].append(actual_direction)
+                        predictions_data['predicted_directions'].append(predicted_direction)
+                        predictions_data['confidence_values'].append(confidence)
+                        predictions_data['timestamps'].append(current_time)
 
                 # Generate signal
                 signals = self.signal_generator.generate_signals(
@@ -203,6 +237,42 @@ class BacktestEngine:
             self.results['metrics'] = self.calculate_performance_metrics(
                 account['closed_trades'], self.results['equity_curve'], self.results['daily_returns']
             )
+
+            # Process prediction accuracy data
+            if predictions_data['actual_directions'] and predictions_data['predicted_directions']:
+                self.logger.info(
+                    f"Calculating prediction accuracy metrics from {len(predictions_data['actual_directions'])} predictions")
+                self.results['predictions'] = self._calculate_prediction_accuracy(predictions_data)
+                self.logger.info(
+                    f"Overall prediction accuracy: {self.results['predictions'].get('overall_accuracy', 0):.2%}")
+            else:
+                self.logger.warning("No prediction data available for accuracy analysis")
+
+            # Run confidence-risk analysis if we have enough trades
+            if len(account['closed_trades']) >= 10:
+                try:
+                    from Evaluation.ConfidenceRiskAnalyzer import ConfidenceRiskAnalyzer
+
+                    self.logger.info(f"Performing confidence-risk analysis on {len(account['closed_trades'])} trades")
+                    confidence_analyzer = ConfidenceRiskAnalyzer(self.logger)
+                    confidence_analysis = confidence_analyzer.analyze_backtest_data(account['closed_trades'])
+
+                    # Debug logging
+                    if confidence_analysis:
+                        num_data_points = len(confidence_analysis.get('confidence_analysis', []))
+                        num_charts = len(confidence_analysis.get('charts', {}))
+                        self.logger.info(f"Analysis generated {num_data_points} data points and {num_charts} charts")
+                    else:
+                        self.logger.warning("Analysis returned empty results")
+
+                    self.results['confidence_risk_analysis'] = confidence_analysis
+                    self.logger.info("Confidence-risk analysis completed")
+                except Exception as e:
+                    self.logger.error(f"Error performing confidence-risk analysis: {e}")
+                    import traceback
+                    self.logger.error(traceback.format_exc())
+            else:
+                self.logger.warning(f"Not enough trades ({len(account['closed_trades'])}) for confidence-risk analysis")
 
             self.logger.info(f"Backtest completed for {pair} {timeframe}. "
                              f"Final balance: {account['balance']:.2f}, "
@@ -391,14 +461,7 @@ class BacktestEngine:
 
     def _open_position(self, account: Dict[str, Any], signal: Dict[str, Any],
                        bar_data: pd.Series, market_data: Dict[str, Any]) -> None:
-        """Open a new position based on signal.
-
-        Args:
-            account: Account dictionary
-            signal: Signal dictionary
-            bar_data: Current bar data
-            market_data: Market data dictionary
-        """
+        """Open a new position based on signal."""
         try:
             # Determine trade direction
             signal_type = signal['type']
@@ -1378,3 +1441,143 @@ class BacktestEngine:
             import traceback
             self.logger.error(traceback.format_exc())
             return None
+
+    def _calculate_prediction_accuracy(self, predictions_data: Dict[str, List]) -> Dict[str, Any]:
+        """Calculate prediction accuracy metrics."""
+        try:
+            actual = np.array(predictions_data['actual_directions'])
+            predicted = np.array(predictions_data['predicted_directions'])
+            confidence = np.array(predictions_data['confidence_values'])
+            timestamps = predictions_data['timestamps']
+
+            # Check if we should apply a minimum movement threshold
+            # (ignore very small price movements that could be noise)
+            if hasattr(self.model, 'metadata') and self.model.metadata:
+                direction_threshold = self.model.metadata.get('direction_threshold', 0)
+                prediction_horizon = self.model.metadata.get('prediction_horizon', 1)
+
+                self.logger.info(f"Using model metadata: direction_threshold={direction_threshold}, "
+                                 f"prediction_horizon={prediction_horizon}")
+            else:
+                direction_threshold = 0
+                prediction_horizon = 1
+
+            # Calculate overall accuracy, but only on predictions that meet the threshold
+            correct = (actual == predicted)
+            overall_accuracy = np.mean(correct)
+
+            # Calculate class-specific accuracy
+            up_indices = actual == 1
+            down_indices = actual == 0
+
+            up_accuracy = np.mean(correct[up_indices]) if np.any(up_indices) else 0
+            down_accuracy = np.mean(correct[down_indices]) if np.any(down_indices) else 0
+
+            # Calculate confusion matrix
+            from sklearn.metrics import confusion_matrix
+            cm = confusion_matrix(actual, predicted, labels=[0, 1])
+
+            # Analyze accuracy by confidence level
+            confidence_bins = [0, 0.2, 0.4, 0.6, 0.8, 1.0]
+            conf_accuracy = {}
+
+            for i in range(len(confidence_bins) - 1):
+                bin_start = confidence_bins[i]
+                bin_end = confidence_bins[i + 1]
+                bin_key = f"({bin_start:.1f}, {bin_end:.1f})"
+
+                # Get indices of predictions in this confidence bin
+                bin_indices = (confidence >= bin_start) & (confidence < bin_end)
+
+                if np.any(bin_indices):
+                    bin_correct = correct[bin_indices]
+                    bin_accuracy = np.mean(bin_correct)
+                    bin_samples = len(bin_correct)
+                    bin_percentage = (bin_samples / len(correct)) * 100
+
+                    conf_accuracy[bin_key] = {
+                        'accuracy': bin_accuracy,
+                        'samples': bin_samples,
+                        'percentage': bin_percentage
+                    }
+
+            # Create confidence stats
+            confidence_stats = {
+                'mean': np.mean(confidence),
+                'min': np.min(confidence),
+                'max': np.max(confidence),
+                'std': np.std(confidence)
+            }
+
+            # Generate confusion matrix visualization
+            confusion_matrix_plot = self._generate_confusion_matrix_plot(cm)
+
+            # Compare prediction accuracy to trading performance
+            win_rate = 0
+            if self.results['metrics'] and 'win_rate' in self.results['metrics']:
+                win_rate = self.results['metrics']['win_rate']
+                self.logger.info(f"Trading win rate: {win_rate:.2%} vs. prediction accuracy: {overall_accuracy:.2%}")
+
+            return {
+                'overall_accuracy': overall_accuracy,
+                'class_accuracy': {
+                    '1': {'accuracy': up_accuracy, 'samples': np.sum(up_indices)},
+                    '0': {'accuracy': down_accuracy, 'samples': np.sum(down_indices)}
+                },
+                'confusion_matrix': cm.tolist(),
+                'confusion_matrix_plot': confusion_matrix_plot,
+                'confidence': {
+                    'stats': confidence_stats,
+                    'by_level': conf_accuracy
+                },
+                'timestamps': [t.isoformat() for t in timestamps],
+                'sample_count': len(actual),
+                'direction_threshold': direction_threshold,
+                'prediction_horizon': prediction_horizon,
+                'win_rate_comparison': {
+                    'prediction_accuracy': overall_accuracy,
+                    'trading_win_rate': win_rate
+                }
+            }
+
+        except Exception as e:
+            self.logger.error(f"Error calculating prediction accuracy: {e}")
+            import traceback
+            self.logger.error(traceback.format_exc())
+            return {}
+
+    def _generate_confusion_matrix_plot(self, confusion_matrix_data) -> str:
+        """Generate confusion matrix visualization."""
+        try:
+            import matplotlib.pyplot as plt
+            import seaborn as sns
+            from pathlib import Path
+
+            # Create output directory
+            output_dir = Path("BacktestResults/charts")
+            output_dir.mkdir(parents=True, exist_ok=True)
+
+            # Create timestamp for unique filename
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+
+            # Create the plot
+            plt.figure(figsize=(8, 6))
+
+            # Use seaborn heatmap for better visualization
+            sns.heatmap(confusion_matrix_data, annot=True, fmt='d', cmap='Blues',
+                        xticklabels=['Pred DOWN', 'Pred UP'],
+                        yticklabels=['True DOWN', 'True UP'])
+
+            plt.title('Prediction Confusion Matrix')
+            plt.tight_layout()
+
+            # Save the chart
+            output_path = output_dir / f"confusion_matrix_{timestamp}.png"
+            plt.savefig(output_path, dpi=100, bbox_inches='tight')
+            plt.close()
+
+            return str(output_path)
+
+        except Exception as e:
+            self.logger.error(f"Error generating confusion matrix plot: {e}")
+            return ""

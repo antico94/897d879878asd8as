@@ -4,3 +4,4 @@ from ReportGeneration.Sections.trades_section import generate_trades_section
 from ReportGeneration.Sections.equity_section import generate_equity_section
 from ReportGeneration.Sections.performance_section import generate_performance_section
 from ReportGeneration.Sections.summary_section import generate_summary_section
+from ReportGeneration.Sections.confidence_risk_section import generate_confidence_risk_section

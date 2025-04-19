@@ -74,17 +74,6 @@ class BacktestEngine:
         return params
 
     def run_backtest(self, pair: str, timeframe: str, start_date: str, end_date: str) -> Dict[str, Any]:
-        """Run backtest on historical data.
-
-        Args:
-            pair: Currency pair to backtest
-            timeframe: Timeframe to use
-            start_date: Start date for backtest
-            end_date: End date for backtest
-
-        Returns:
-            Dictionary with backtest results
-        """
         try:
             self.logger.info(f"Starting backtest for {pair} {timeframe} "
                              f"from {start_date} to {end_date}")
@@ -94,8 +83,19 @@ class BacktestEngine:
                 'equity_curve': [],
                 'trades': [],
                 'metrics': {},
-                'daily_returns': []
+                'daily_returns': [],
+                'start_date': start_date,
+                'end_date': end_date,
+                'pair': pair,
+                'timeframe': timeframe
             }
+
+            # Store strategy parameters in results
+            self.results['initial_balance'] = self.params['initial_balance']
+            self.results['strategy_params'] = self.params
+
+            # Add model info to results
+            self.results['model_info'] = self._get_model_info()
 
             # Load historical data
             data = self._load_historical_data(pair, timeframe, start_date, end_date)
@@ -196,6 +196,9 @@ class BacktestEngine:
             # Close any remaining open positions at end of backtest
             self._close_all_positions(account, data.iloc[-1])
 
+            # Store all closed trades in results
+            self.results['trades'] = account['closed_trades']
+
             # Calculate final metrics
             self.results['metrics'] = self.calculate_performance_metrics(
                 account['closed_trades'], self.results['equity_curve'], self.results['daily_returns']
@@ -206,11 +209,55 @@ class BacktestEngine:
                              f"Total trades: {len(account['closed_trades'])}, "
                              f"Win rate: {self.results['metrics'].get('win_rate', 0):.2f}")
 
+            # Generate and open report automatically
+            self.generate_report(open_browser=True)
+
             return self.results
 
         except Exception as e:
             self.logger.error(f"Error running backtest: {e}")
             raise
+
+    def _get_model_info(self) -> Dict[str, Any]:
+        """Extract information about the model being used in the backtest."""
+        model_info = {
+            'model_name': 'Gold Trading Model',
+            'timeframe': self.params.get('timeframe', 'H1'),
+            'prediction_horizon': 1  # Default to 1-period ahead prediction
+        }
+
+        # Try to extract metadata from model
+        if hasattr(self, 'model'):
+            # Get model name
+            if hasattr(self.model, 'name'):
+                model_info['model_name'] = self.model.name
+
+            # Get metadata from model
+            if hasattr(self.model, 'metadata') and self.model.metadata:
+                model_info['metadata'] = self.model.metadata
+
+                # Extract specific metadata if available
+                if 'timeframe' in self.model.metadata:
+                    model_info['timeframe'] = self.model.metadata['timeframe']
+
+                if 'prediction_horizon' in self.model.metadata:
+                    model_info['prediction_horizon'] = self.model.metadata['prediction_horizon']
+
+                if 'features' in self.model.metadata:
+                    model_info['features'] = self.model.metadata['features']
+
+        # Add feature list if available
+        if hasattr(self, 'feature_list') and self.feature_list:
+            model_info['features'] = self.feature_list
+
+        # Store data period information
+        model_info['data_period'] = {
+            'start': self.results.get('start_date', 'Unknown'),
+            'end': self.results.get('end_date', 'Unknown')
+        }
+
+        return model_info
+
 
     def _load_historical_data(self, pair: str, timeframe: str, start_date: str, end_date: str) -> pd.DataFrame:
         """Load historical data for backtest.
@@ -1246,3 +1293,88 @@ class BacktestEngine:
 
         except Exception as e:
             self.logger.error(f"Error exporting equity curve to CSV: {e}")
+
+    def generate_report(self, output_dir=None, open_browser=True):
+        """
+        Generate a comprehensive HTML report for the backtest results and open in browser.
+        """
+        global os, sys
+        try:
+            # Log Python path to help diagnose import issues
+            import sys
+            import os
+            self.logger.info(f"Python path: {sys.path}")
+            self.logger.info(f"Current working directory: {os.getcwd()}")
+
+            # Try to find the ReportGeneration module
+            possible_locations = [
+                os.path.join(os.getcwd(), "ReportGeneration"),
+                os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "ReportGeneration")
+            ]
+
+            for loc in possible_locations:
+                self.logger.info(f"Checking if ReportGeneration exists at: {loc}")
+                if os.path.exists(loc):
+                    self.logger.info(f"ReportGeneration directory found at: {loc}")
+                    if os.path.exists(os.path.join(loc, "__init__.py")):
+                        self.logger.info("__init__.py file exists - module structure looks correct")
+                    else:
+                        self.logger.warning("__init__.py file not found - module may not be importable")
+
+            # Try to import the module
+            self.logger.info("Attempting to import ReportGeneration module...")
+            from ReportGeneration import generate_backtest_report
+            self.logger.info("Successfully imported generate_backtest_report function")
+
+            if output_dir is None:
+                output_dir = "BacktestResults"
+
+            self.logger.info(f"Using output directory: {output_dir}")
+            self.logger.info("Generating backtest report...")
+
+            report_path = generate_backtest_report(
+                backtest_results=self.results,
+                output_dir=output_dir,
+                open_browser=open_browser
+            )
+
+            self.logger.info(f"Backtest report generated at: {report_path}")
+            return report_path
+
+        except ImportError as e:
+            self.logger.error(f"ReportGeneration module not found: {str(e)}")
+            self.logger.error("Please ensure the ReportGeneration folder is in your project root")
+
+            # Try to add project root to path and import again
+            try:
+                project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+                if project_root not in sys.path:
+                    self.logger.info(f"Adding project root to Python path: {project_root}")
+                    sys.path.append(project_root)
+
+                self.logger.info("Trying import again after path modification...")
+                from ReportGeneration import generate_backtest_report
+
+                self.logger.info("Import successful after path modification")
+                if output_dir is None:
+                    output_dir = "BacktestResults"
+
+                report_path = generate_backtest_report(
+                    backtest_results=self.results,
+                    output_dir=output_dir,
+                    open_browser=open_browser
+                )
+
+                self.logger.info(f"Backtest report generated at: {report_path}")
+                return report_path
+
+            except ImportError as second_e:
+                self.logger.error(f"Still couldn't import after path modification: {str(second_e)}")
+                self.logger.error("Try moving the ReportGeneration folder to your project root directory")
+                return None
+
+        except Exception as e:
+            self.logger.error(f"Error generating backtest report: {e}")
+            import traceback
+            self.logger.error(traceback.format_exc())
+            return None

@@ -1,0 +1,6 @@
+from ReportGeneration.Sections.model_info_section import generate_model_info_section
+from ReportGeneration.Sections.accuracy_section import generate_accuracy_section
+from ReportGeneration.Sections.trades_section import generate_trades_section
+from ReportGeneration.Sections.equity_section import generate_equity_section
+from ReportGeneration.Sections.performance_section import generate_performance_section
+from ReportGeneration.Sections.summary_section import generate_summary_section

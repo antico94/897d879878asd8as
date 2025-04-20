@@ -10,15 +10,27 @@ class DataPreparer:
     def __init__(self, logger, feature_list=None):
         self.logger = logger
         self.scalers = {}
+        # Explicitly provide only 7 features to match the model's expectation
         self.feature_list = feature_list or [
             "macd_histogram", "stoch_k", "resistance2", "close_pct_change_3",
-            "close_pct_change_5", "high_pct_change_3", "close_pct_change", "rsi"
+            "close_pct_change_5", "high_pct_change_3", "rsi"
         ]
+        # Log the features this preparer will use
+        self.logger.info(f"DataPreparer initialized with 7 features: {self.feature_list}")
+    def update_feature_list(self, new_feature_list):
+        """Update the feature list to match the model's expected features."""
+        self.logger.info(f"Updating feature list from {self.feature_list} to {new_feature_list}")
+        self.feature_list = new_feature_list
+        # Reset scalers when changing features
+        self.scalers = {}
 
     def prepare_sequence(self, market_data: Dict[str, Any], historical_data: pd.DataFrame) -> np.ndarray:
         """Prepare data sequence for model prediction."""
         try:
             sequence_length = 24  # Get this from model.sequence_length in real implementation
+
+            # Log which features we're preparing for trading
+            self.logger.info(f"Preparing sequence for trading with features: {self.feature_list}")
 
             # Ensure we have enough historical data
             if len(historical_data) < sequence_length:

@@ -354,9 +354,10 @@ def handle_train_model(cli: TradingBotCLI, logger: Logger,
                         # Evaluate model
                         metrics = model_trainer.evaluate_model()
                         print(f"✓ Model evaluation:")
-                        print(f"  - Direction accuracy: {metrics.get('direction_accuracy', 0):.2f}")
-                        print(f"  - Win rate: {metrics.get('win_rate', 0):.2f}")
+                        print(f"  - Direction accuracy: {metrics.get('direction_accuracy', 0):.2%}")
+                        print(f"  - Win rate: {metrics.get('win_rate', 0):.2%}")
                         print(f"  - Profit factor: {metrics.get('profit_factor', 0):.2f}")
+                        print(f"  - Expected return: {metrics.get('expected_return', 0):.4f}")
                     else:
                         print("✗ Model training failed")
                 except Exception as e:

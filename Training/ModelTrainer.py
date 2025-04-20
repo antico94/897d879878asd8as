@@ -339,6 +339,15 @@ class ModelTrainer:
             self.logger.info("Evaluating model on test data")
             metrics = self.model.evaluate(test_data['X_test'], test_data['y_test'])
 
+            # Create mapping from Keras metric names to expected names
+            keras_metrics = dict(zip(self.model.model.metrics_names, metrics))
+
+            # Extract specific metrics we need for display
+            result_metrics = {'loss': keras_metrics.get('loss', 0.0),
+                              'direction_accuracy': keras_metrics.get('direction_accuracy', 0.0),
+                              'magnitude_mae': keras_metrics.get('magnitude_mae', 0.0),
+                              'volatility_mae': keras_metrics.get('volatility_mae', 0.0)}
+
             # Calculate trading-specific metrics
             pred = self.model.predict(test_data['X_test'])
 
@@ -367,7 +376,7 @@ class ModelTrainer:
             expected_return = np.mean(pnl) if len(pnl) > 0 else 0
 
             # Add trading metrics to the evaluation results
-            metrics.update({
+            result_metrics.update({
                 'win_rate': win_rate,
                 'profit_factor': profit_factor,
                 'expected_return': expected_return
@@ -379,7 +388,7 @@ class ModelTrainer:
 
             self.logger.info(
                 f"Model evaluation completed with win rate: {win_rate:.2f}, profit factor: {profit_factor:.2f}")
-            return metrics
+            return result_metrics
 
         except Exception as e:
             self.logger.error(f"Error evaluating model: {e}")

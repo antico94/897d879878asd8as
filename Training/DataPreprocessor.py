@@ -322,8 +322,8 @@ class DataPreprocessor:
             # Create sequences
             X_sequences, sequence_times = self.create_sequences(X_scaled, sequence_length)
 
-            # Prepare multi-target outputs
-            y_targets = self.prepare_multi_target(y)
+            y_aligned = y.iloc[sequence_length - 1:].reset_index(drop=True)
+            y_targets = self.prepare_multi_target(y_aligned)
 
             # Split data temporally
             dataset = self.split_data_temporal(X_sequences, y_targets)
